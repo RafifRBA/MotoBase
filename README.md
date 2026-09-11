@@ -1,4 +1,5 @@
-*MotoBase 
+MotoBase 
+
 Layanan digitalisasi operasional bengkel motor yang membantu mengelola alur servis, pencatatan otomatis stok suku cadang, dan riwayat kendaraan secara terpusat. Untuk memastikan alur kerja transparan dan efisien, layanan ini juga menyediakan pelacakan status pengerjaan secara real-time bagi pelanggan serta laporan analitik otomatis bagi pemilik bengkel
 
 Tim 7:
