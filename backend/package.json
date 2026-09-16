@@ -1,0 +1,30 @@
+{
+  "name": "backend-motobase",
+  "version": "1.0.0",
+  "description": "backend MotoBase",
+  "homepage": "https://github.com/RafifRBA/MotoBase#readme",
+  "bugs": {
+    "url": "https://github.com/RafifRBA/MotoBase/issues"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/RafifRBA/MotoBase.git"
+  },
+  "license": "ISC",
+  "author": "",
+  "type": "module",
+  "main": "server.js",
+  "scripts": {
+    "start": "node src/server.js",
+    "dev": "nodemon src/server.js"
+  },
+  "dependencies": {
+    "cors": "^2.8.6",
+    "dotenv": "^17.4.2",
+    "express": "^5.2.1",
+    "mongoose": "^9.10.1"
+  },
+  "devDependencies": {
+    "nodemon": "^3.1.14"
+  }
+}
