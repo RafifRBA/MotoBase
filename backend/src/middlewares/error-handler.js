@@ -12,8 +12,10 @@ const sendError = (req, res, statusCode, code, message, details = null) =>
 
 
 export const errorHandler = (err, req, res, next) => {
+    const log = req.log ?? logger;
+
     if(err instanceof ApiError) {
-        logger.warn({
+        log.warn({
             code: err.code,
             statusCode: err.statusCode,
             details: err.details
@@ -42,7 +44,7 @@ export const errorHandler = (err, req, res, next) => {
     if (err instanceof SyntaxError && err.status === 400 && 'body' in err && err.type === 'entity.parse.failed') {
         const clientMessage = 'Format JSON yang Anda kirimkan rusak atau tidak valid';
         
-        logger.warn({
+        log.warn({
             code: 'INVALID_JSON',
             statusCode: 400,
             originalError: err.message
@@ -55,7 +57,7 @@ export const errorHandler = (err, req, res, next) => {
         );
     }
 
-    logger.error({ err }, 'Unexpected Error');
+    log.error({ err }, 'Unexpected Error');
 
     return sendError(
         req, res, 500, "INTERNAL_SERVER_ERROR",
