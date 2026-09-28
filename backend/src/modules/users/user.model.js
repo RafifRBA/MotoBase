@@ -8,10 +8,7 @@ export const ROLES = Object.freeze({
 });
 
 const emptyToUndefined = (value) => {
-    return (
-        value === null || (typeof value === 'string' && value.trim() === "")
-        ? undefined : value
-    )
+    return value === null || (typeof value === "string" && value.trim() === "") ? undefined : value;
 };
 
 const userSchema = new mongoose.Schema(
@@ -58,9 +55,8 @@ const userSchema = new mongoose.Schema(
     { timestamps: true },
 );
 
-
 userSchema.index({ email: 1 }, { unique: true, sparse: true });
 userSchema.index({ phone: 1 }, { unique: true, sparse: true });
-userSchema.index({ role: 1, isActive: 1});
+userSchema.index({ role: 1, isActive: 1 });
 
 export const User = mongoose.model("User", userSchema);

@@ -1,15 +1,15 @@
 export const validate = (schemas) => (req, _res, next) => {
     req.validated = {};
 
-    if (schemas.params){
+    if (schemas.params) {
         req.validated.params = schemas.params.parse(req.params);
     }
 
-    if (schemas.query){
+    if (schemas.query) {
         req.validated.query = schemas.query.parse(req.query);
     }
 
-    if (schemas.body){
+    if (schemas.body) {
         req.validated.body = schemas.body.parse(req.body);
     }
 
