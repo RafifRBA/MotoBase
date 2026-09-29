@@ -5,7 +5,6 @@ import { authorize } from "../../middlewares/authorize.js";
 import { validate } from "../../middlewares/validate.js";
 import { ROLES } from "../users/user.model.js";
 import * as orderController from "./service-order.controller.js";
-import * as trackingController from "./tracking.controller.js";
 import {
     addPartSchema,
     assignMechanicSchema,
@@ -40,7 +39,7 @@ router.patch(
     orderController.assignMechanic,
 );
 
-// Asumsi SPEC 31: admin DAN mekanik boleh mengubah status. Di bengkel kecil,
+// Asumsi admin DAN mekanik boleh mengubah status. Di bengkel kecil,
 // mekanik sering tidak memegang komputer.
 router.patch(
     "/:id/status",
@@ -59,18 +58,18 @@ router.delete(
 
 router.post("/:id/payment", adminOnly, validate(paymentSchema), orderController.pay);
 
-// Link tracking hanya boleh diputar ulang atau dicabut oleh admin (SPEC 9).
+// Link tracking hanya boleh diputar ulang atau dicabut oleh admin.
 router.post(
     "/:id/rotate-tracking-token",
     adminOnly,
     validate(orderIdSchema),
-    trackingController.rotate,
+    orderController.rotateTracking,
 );
 router.post(
     "/:id/revoke-tracking-token",
     adminOnly,
     validate(orderIdSchema),
-    trackingController.revoke,
+    orderController.revokeTracking,
 );
 
 export default router;

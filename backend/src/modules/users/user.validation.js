@@ -12,8 +12,6 @@ export const phoneSchema = z
     .transform((value) => normalizePhone(value))
     .refine((value) => value !== null, "Nomor telepon tidak valid");
 
-// Role internal saja. CUSTOMER dibuat lewat registrasi pelanggan (Tahap 7),
-// bukan lewat endpoint ini.
 const STAFF_ROLES = [ROLES.ADMIN, ROLES.MECHANIC, ROLES.OWNER];
 
 export const listUsersSchema = {
@@ -38,7 +36,7 @@ export const createUserSchema = {
 
 export const updateUserSchema = {
     params: z.object({ id: objectIdSchema }),
-    // Field yang boleh diubah ditulis eksplisit (SPEC 24: hindari mass
+    // Field yang boleh diubah ditulis eksplisit (hindari mass
     // assignment). role dan password sengaja TIDAK ada di sini.
     body: z
         .object({

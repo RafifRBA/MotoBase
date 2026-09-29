@@ -1,5 +1,17 @@
-import { toUserResponse } from "./user.mapper.js";
 import * as userService from "./user.service.js";
+
+// Allowlist: field ditulis satu per satu supaya field baru di model (termasuk
+// passwordHash) tidak ikut terkirim ke client tanpa sengaja.
+export const toUserResponse = (user) => ({
+    id: user.id,
+    name: user.name,
+    email: user.email ?? null,
+    phone: user.phone ?? null,
+    role: user.role,
+    isActive: user.isActive,
+    lastLoginAt: user.lastLoginAt ?? null,
+    createdAt: user.createdAt,
+});
 
 export const list = async (req, res) => {
     const { users, meta } = await userService.listUsers(req.validated.query);

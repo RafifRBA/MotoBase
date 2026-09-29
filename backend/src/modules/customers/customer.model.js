@@ -5,13 +5,6 @@ const emptyToUndefined = (value) =>
 
 const customerSchema = new mongoose.Schema(
     {
-        // Pelanggan bisa dibuat admin sebelum punya akun (SPEC 8), jadi userId
-        // opsional. Diisi saat pelanggan mendaftar dan kepemilikannya terbukti.
-        userId: {
-            type: mongoose.Schema.Types.ObjectId,
-            ref: "User",
-            set: emptyToUndefined,
-        },
         name: { type: String, required: true, trim: true, maxlength: 100 },
         // Selalu disimpan dalam format 62xxxxxxxxxx.
         phone: { type: String, required: true, trim: true },
@@ -22,8 +15,8 @@ const customerSchema = new mongoose.Schema(
     { timestamps: true },
 );
 
-customerSchema.index({ userId: 1 }, { unique: true, sparse: true });
-// Nomor telepon dibuat unik supaya penghubungan akun di Tahap 7 tidak ambigu.
+// Nomor telepon unik: dipakai admin untuk mencari pelanggan lama dengan cepat
+// dan mencegah data pelanggan yang sama terinput dua kali.
 customerSchema.index({ phone: 1 }, { unique: true });
 customerSchema.index({ name: 1 });
 

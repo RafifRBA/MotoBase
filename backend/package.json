@@ -22,7 +22,8 @@
         "format:check": "prettier --check .",
         "test": "vitest run",
         "test:watch": "vitest",
-        "seed:owner": "node scripts/seed-owner.js"
+        "seed:owner": "node scripts/seed-owner.js",
+        "reset:password": "node scripts/reset-password.js"
     },
     "dependencies": {
         "bcryptjs": "^3.0.3",

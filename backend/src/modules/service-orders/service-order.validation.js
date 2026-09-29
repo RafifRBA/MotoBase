@@ -60,7 +60,7 @@ export const updateStatusSchema = {
         status: z.enum(Object.values(ORDER_STATUS)),
         note: z.string().trim().max(300).optional(),
         // Koreksi mundur hanya boleh admin, dan wajib menyatakan niatnya
-        // secara eksplisit lewat flag ini (SPEC 11).
+        // secara eksplisit lewat flag ini.
         isCorrection: z.boolean().default(false),
     }),
 };

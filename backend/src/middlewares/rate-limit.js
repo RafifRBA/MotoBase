@@ -3,8 +3,8 @@ import { rateLimit } from "express-rate-limit";
 import { isTest } from "../config/env.js";
 import ApiError from "../utils/api-error.js";
 
-// Pembungkus express-rate-limit supaya response 429 selalu lewat errorHandler
-// dan memakai format SPEC 16.2, bukan teks bawaan library.
+// Pembungkus express-rate-limit supaya response 429 lewat errorHandler dan
+// memakai format JSON yang sama dengan error lain, bukan teks bawaan library.
 export const createRateLimiter = ({
     windowMs,
     limit,

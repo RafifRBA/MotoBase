@@ -22,7 +22,6 @@ describe("POST /api/v1/customers", () => {
 
         expect(res.status).toBe(201);
         expect(res.body.data.phone).toBe("6281234567890");
-        expect(res.body.data.userId).toBeNull();
     });
 
     it("nomor telepon yang sama dalam format berbeda ditolak duplikat", async () => {
@@ -159,17 +158,5 @@ describe("GET & PATCH /api/v1/customers/:id", () => {
         const res = await admin.patch(`/api/v1/customers/${body.data.id}`).send({});
 
         expect(res.status).toBe(400);
-    });
-
-    it("userId tidak bisa disuntikkan lewat body", async () => {
-        const admin = await asRole(ROLES.ADMIN);
-        const { body } = await admin.post("/api/v1/customers").send(contohPelanggan);
-
-        const res = await admin
-            .patch(`/api/v1/customers/${body.data.id}`)
-            .send({ name: "Nama Baru", userId: "507f1f77bcf86cd799439011" });
-
-        expect(res.status).toBe(200);
-        expect(res.body.data.userId).toBeNull();
     });
 });

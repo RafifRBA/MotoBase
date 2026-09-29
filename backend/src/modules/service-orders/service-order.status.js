@@ -9,7 +9,7 @@ export const ORDER_STATUS = Object.freeze({
     DIBATALKAN: "DIBATALKAN",
 });
 
-// Alur normal hanya boleh maju satu tahap (SPEC 11). Mekanik tidak bisa
+// Alur normal hanya boleh maju satu tahap. Mekanik tidak bisa
 // melompat dari ANTRE langsung ke SELESAI.
 const NEXT_STATUS = Object.freeze({
     [ORDER_STATUS.ANTRE]: ORDER_STATUS.DIPERIKSA,

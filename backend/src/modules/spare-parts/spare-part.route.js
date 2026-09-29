@@ -20,7 +20,7 @@ const router = Router();
 router.use(authenticate);
 
 // Mekanik perlu melihat katalog dan sisa stok saat mengerjakan servis,
-// tapi tidak boleh mengubah stok (SPEC 6.1).
+// tapi tidak boleh mengubah stok.
 const canRead = authorize(ROLES.ADMIN, ROLES.OWNER, ROLES.MECHANIC);
 const canWrite = authorize(ROLES.ADMIN);
 const canReadInternal = authorize(ROLES.ADMIN, ROLES.OWNER);

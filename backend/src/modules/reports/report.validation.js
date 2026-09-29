@@ -1,6 +1,6 @@
 import { z } from "zod";
 
-// Filter laporan minimal: ?startDate=2026-09-01&endDate=2026-09-30 (SPEC 15.10).
+// Filter laporan minimal: ?startDate=2026-09-01&endDate=2026-09-30.
 export const reportRangeSchema = {
     query: z
         .object({

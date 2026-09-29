@@ -7,7 +7,7 @@ export const MOVEMENT_TYPES = Object.freeze({
     REVERSAL: "REVERSAL", // pembatalan pemakaian, stok dikembalikan
 });
 
-// Collection ini bersifat APPEND-ONLY (SPEC 12.6). Koreksi dilakukan dengan
+// Collection ini bersifat APPEND-ONLY. Koreksi dilakukan dengan
 // membuat movement baru bertipe REVERSAL atau ADJUSTMENT, bukan menghapus atau
 // mengubah catatan lama. Dengan begitu riwayat stok selalu bisa ditelusuri.
 const stockMovementSchema = new mongoose.Schema(
@@ -33,7 +33,7 @@ const stockMovementSchema = new mongoose.Schema(
         reason: { type: String, required: true, trim: true, maxlength: 300 },
         referenceId: { type: String, trim: true, maxlength: 100, default: null },
 
-        // Mencegah retry dari frontend mengurangi stok dua kali (SPEC 14).
+        // Mencegah retry dari frontend mengurangi stok dua kali.
         idempotencyKey: { type: String, default: undefined },
 
         createdBy: { type: mongoose.Schema.Types.ObjectId, ref: "User", required: true },

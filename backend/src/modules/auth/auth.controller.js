@@ -1,5 +1,5 @@
 import { isProduction } from "../../config/env.js";
-import { toUserResponse } from "../users/user.mapper.js";
+import { toUserResponse } from "../users/user.controller.js";
 import * as authService from "./auth.service.js";
 
 const REFRESH_COOKIE_NAME = "refreshToken";
@@ -21,14 +21,14 @@ const requestMeta = (req) => ({
     ipAddress: req.ip ?? null,
 });
 
-const sendSession = (res, message, session, status = 200) => {
+const sendSession = (res, message, session) => {
     res.cookie(
         REFRESH_COOKIE_NAME,
         session.refreshToken,
         refreshCookieOptions(session.refreshTokenExpiresAt),
     );
 
-    return res.status(status).json({
+    return res.status(200).json({
         success: true,
         message,
         data: {
@@ -69,8 +69,3 @@ export const logout = async (req, res) => {
 
 export const me = (req, res) =>
     res.status(200).json({ success: true, data: toUserResponse(req.user) });
-
-export const registerCustomer = async (req, res) => {
-    const session = await authService.registerCustomer(req.validated.body, requestMeta(req));
-    return sendSession(res, "Registrasi berhasil", session, 201);
-};

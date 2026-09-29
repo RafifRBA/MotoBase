@@ -20,7 +20,7 @@ describe("GET /health", () => {
     });
 });
 
-describe("Format error (SPEC 16.2)", () => {
+describe("Format error standar", () => {
     it("route yang tidak ada membalas 404 dengan bentuk error standar", async () => {
         const res = await request(app).get("/api/v1/route-yang-tidak-ada");
 

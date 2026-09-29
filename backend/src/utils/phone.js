@@ -1,4 +1,4 @@
-// Normalisasi nomor telepon Indonesia ke format 62xxxxxxxxxx (SPEC 8).
+// Normalisasi nomor telepon Indonesia ke format 62xxxxxxxxxx.
 //
 //   0812-3456-7890  -> 6281234567890
 //   +62 812 3456 7890 -> 6281234567890
@@ -22,7 +22,7 @@ export const normalizePhone = (value) => {
     return /^62\d{8,13}$/.test(normalized) ? normalized : null;
 };
 
-// Untuk response publik (SPEC 10.2: nomor telepon lengkap tidak boleh terlihat).
+// Untuk response publik (nomor telepon lengkap tidak boleh terlihat).
 export const maskPhone = (phone) => {
     if (typeof phone !== "string" || phone.length < 4) return "***";
     return `${phone.slice(0, 4)}${"*".repeat(phone.length - 7)}${phone.slice(-3)}`;

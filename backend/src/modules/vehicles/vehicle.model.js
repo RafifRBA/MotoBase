@@ -9,9 +9,9 @@ const emptyToUndefined = (value) =>
 
 const vehicleSchema = new mongoose.Schema(
     {
-        // MVP: satu kendaraan dimiliki satu pelanggan (SPEC 12.3). Kalau nanti
-        // butuh akses bersama, tambahkan collection VehicleAccess, jangan
-        // menaruh banyak pemilik di sini.
+        // Satu kendaraan dimiliki satu pelanggan. Kalau nanti butuh akses
+        // bersama (misalnya motor keluarga), tambahkan collection penghubung,
+        // jangan menaruh banyak pemilik di sini.
         customerId: {
             type: mongoose.Schema.Types.ObjectId,
             ref: "Customer",

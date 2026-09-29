@@ -2,7 +2,7 @@ import mongoose from "mongoose";
 import { MongoMemoryReplSet } from "mongodb-memory-server";
 
 // Replica set (bukan server biasa) karena transaction MongoDB hanya jalan di
-// replica set, dan mulai Tahap 4 pemakaian suku cadang membutuhkannya.
+// replica set, dan pemakaian suku cadang membutuhkannya.
 let replSet;
 
 export const connectTestDB = async () => {

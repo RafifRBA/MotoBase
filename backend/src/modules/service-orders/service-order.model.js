@@ -9,7 +9,7 @@ export const PAYMENT_STATUS = Object.freeze({
 
 export const PAYMENT_METHODS = Object.freeze(["TUNAI", "TRANSFER", "QRIS"]);
 
-// Riwayat status yang ditampilkan ke pelanggan (SPEC 10 & 11). Berbeda dari
+// Riwayat status yang ditampilkan ke pelanggan. Berbeda dari
 // audit log internal: tidak memuat catatan internal mekanik.
 const statusHistorySchema = new mongoose.Schema(
     {
@@ -18,7 +18,7 @@ const statusHistorySchema = new mongoose.Schema(
         changedBy: { type: mongoose.Schema.Types.ObjectId, ref: "User", required: true },
         changedAt: { type: Date, required: true, default: Date.now },
         note: { type: String, trim: true, maxlength: 300, default: null },
-        // true kalau ini koreksi mundur yang dilakukan admin (SPEC 11).
+        // true kalau ini koreksi mundur yang dilakukan admin.
         isCorrection: { type: Boolean, default: false },
     },
     { _id: true },
@@ -54,7 +54,7 @@ const serviceOrderSchema = new mongoose.Schema(
 
         complaint: { type: String, required: true, trim: true, maxlength: 1000 },
         diagnosis: { type: String, trim: true, maxlength: 1000, default: null },
-        // Tidak pernah keluar lewat endpoint publik (SPEC 10.2).
+        // Tidak pernah keluar lewat endpoint publik.
         internalNotes: { type: String, trim: true, maxlength: 1000, default: null },
 
         currentStatus: {
@@ -64,7 +64,7 @@ const serviceOrderSchema = new mongoose.Schema(
             default: ORDER_STATUS.ANTRE,
         },
 
-        // Semua nilai uang berupa integer rupiah (SPEC 12.4).
+        // Semua nilai uang berupa integer rupiah.
         serviceCost: { type: Number, required: true, min: 0, default: 0 },
         partsSubtotal: { type: Number, required: true, min: 0, default: 0 },
         grandTotal: { type: Number, required: true, min: 0, default: 0 },
@@ -78,7 +78,7 @@ const serviceOrderSchema = new mongoose.Schema(
         paidAt: { type: Date, default: null },
         paidBy: { type: mongoose.Schema.Types.ObjectId, ref: "User", default: null },
 
-        // Token mentah tidak pernah disimpan (SPEC 9).
+        // Token mentah tidak pernah disimpan.
         trackingTokenHash: { type: String, default: undefined },
         trackingExpiresAt: { type: Date, default: null },
         trackingRevokedAt: { type: Date, default: null },

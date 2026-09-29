@@ -10,15 +10,14 @@ Kode error bersifat stabil dan boleh dipakai frontend untuk percabangan logika.
 
 ---
 
-## Asumsi yang diambil (SPEC 31)
+## Asumsi yang diambil
 
-Hal-hal berikut belum diputuskan pemilik proyek. Untuk MVP dipilih opsi paling
-sederhana yang tetap aman. Semuanya mudah diubah nanti.
+Hal-hal berikut belum ditentukan di deskripsi tugas. Dipilih opsi paling
+sederhana yang tetap aman, dan semuanya mudah diubah nanti.
 
 | Keputusan | Yang dipakai sekarang |
 |---|---|
 | Login staf | Email + password |
-| Login pelanggan | Password (OTP menyusul; `phoneVerifiedAt` sudah disiapkan di model User) |
 | Refresh token | Cookie `HttpOnly`, rotasi setiap refresh |
 | Masa berlaku tracking token | 90 hari (`TRACKING_TOKEN_TTL_DAYS`) |
 | Yang boleh mengubah status servis | Mekanik yang ditugaskan + admin |
@@ -152,7 +151,7 @@ Kode error: `USER_NOT_FOUND` (404), `EMAIL_ALREADY_USED` / `PHONE_ALREADY_USED`
 ## Customers
 
 `GET` untuk **ADMIN** dan **OWNER**, `POST`/`PATCH` hanya **ADMIN**. Mekanik
-tidak punya akses (SPEC 6.1).
+tidak punya akses.
 
 | Endpoint | Keterangan |
 |---|---|
@@ -164,7 +163,7 @@ tidak punya akses (SPEC 6.1).
 
 Nomor telepon **selalu dinormalisasi** ke `62xxxxxxxxxx` sebelum disimpan, jadi
 `0812…`, `+62812…`, dan `62812…` dianggap nomor yang sama. Nomor bersifat unik
-antar pelanggan supaya penghubungan akun di Tahap 7 tidak ambigu.
+antar pelanggan supaya admin tidak keliru memilih data yang sama dua kali.
 
 `userId` bernilai `null` selama pelanggan belum punya akun, dan tidak bisa
 diubah lewat endpoint ini.
@@ -192,7 +191,6 @@ Kode error: `VEHICLE_NOT_FOUND` (404), `LICENSE_PLATE_ALREADY_USED` (409),
 `CUSTOMER_NOT_FOUND` (404) kalau `customerId` tidak ada.
 
 ---
-
 
 ## Service Orders
 
@@ -290,37 +288,6 @@ sebuah token pernah valid.
 
 ---
 
-## Akun pelanggan
-
-| Endpoint | Role | Keterangan |
-|---|---|---|
-| `POST /auth/customer/register` | publik | `{ name, phone, password, email? }` — maksimal 5 per jam per IP |
-| `GET /customers/me` | CUSTOMER | 404 `CUSTOMER_PROFILE_NOT_FOUND` kalau belum terhubung |
-| `PATCH /customers/me` | CUSTOMER | hanya `name`, `email`, `address` |
-| `GET /customers/me/vehicles` | CUSTOMER | |
-| `GET /customers/me/service-orders` | CUSTOMER | |
-| `GET /customers/me/service-orders/:orderId` | CUSTOMER | 404 kalau bukan miliknya |
-| `POST /customers/me/claim-service-order` | CUSTOMER | `{ trackingToken }` |
-| `POST /customers/:id/link-user` | ADMIN | `{ userId }` |
-
-### Cara akun terhubung ke data pelanggan
-
-Akun yang baru mendaftar **belum** terhubung ke data pelanggan di bengkel.
-Mengetahui tracking token saja tidak cukup untuk mengklaim (SPEC 8.1).
-
-Selama OTP belum tersedia, verifikasi dilakukan **admin secara langsung di
-bengkel** lewat `POST /customers/:id/link-user`. Admin memeriksa identitas
-pelanggan, lalu endpoint itu menghubungkan akun dan menandai nomornya
-terverifikasi. Setelah nomor terverifikasi, pelanggan bisa menambahkan data
-pelanggan lain miliknya sendiri lewat `claim-service-order`, dengan syarat nomor
-teleponnya cocok.
-
-Kode error: `PHONE_NOT_VERIFIED` (403), `PHONE_MISMATCH` (403),
-`CUSTOMER_ALREADY_LINKED` (409), `USER_ALREADY_LINKED` (409),
-`ALREADY_CLAIMED` (409).
-
----
-
 ## Reports
 
 Semua menerima `?startDate=2026-09-01&endDate=2026-09-30` (opsional). Tanggal
@@ -336,23 +303,36 @@ diartikan sebagai hari penuh waktu lokal bengkel.
 
 ---
 
-## Belum dikerjakan (setelah MVP, SPEC 5.2)
+## Belum dikerjakan
 
 | Fitur | Status |
 |---|---|
-| Notifikasi WhatsApp / email | **belum** — provider belum diputuskan (SPEC 31) |
+| Notifikasi WhatsApp / email | **belum** — provider belum dipilih |
 | Struk PDF (`GET /service-orders/:id/receipt`) | **belum** |
 | `POST /service-orders/:id/resend-tracking` | **belum** — bergantung pada notifikasi |
-| OTP (`/auth/customer/request-otp`, `verify-otp`) | **belum** — sementara diganti verifikasi admin |
+| Akun pelanggan (registrasi & dashboard) | **di luar lingkup** — brief hanya meminta tiga peran; pelanggan cukup lewat link tracking |
 | Dokumentasi OpenAPI/Swagger | **belum** — dokumen ini sebagai gantinya |
 
-Titik pemasangannya sudah disiapkan: `NotificationLog` tinggal ditambahkan,
-`phoneVerifiedAt` sudah ada di model User, dan perubahan status ke `SELESAI`
-sudah menjadi satu tempat tunggal untuk memicu notifikasi.
+Titik pemasangannya sudah disiapkan: perubahan status ke `SELESAI` adalah satu
+tempat tunggal untuk memicu notifikasi, dan data struk sudah lengkap di service
+order.
 
 ---
 
 ## Role
 
-`ADMIN` (kasir), `MECHANIC`, `OWNER`, `CUSTOMER`. Matriks kewenangan ada di
-SPEC bagian 6.1. Seluruh pengecekan dilakukan di backend.
+`ADMIN` (kasir), `MECHANIC`, dan `OWNER`. Seluruh pengecekan wewenang
+dilakukan di backend, bukan sekadar menyembunyikan menu di frontend.
+
+| Kemampuan | ADMIN | MECHANIC | OWNER |
+|---|:---:|:---:|:---:|
+| Membuat service order | Ya | Tidak | Tidak |
+| Memperbarui status servis | Ya | Ya (order yang ditugaskan) | Tidak |
+| Mencatat pemakaian suku cadang | Ya | Ya (order yang ditugaskan) | Tidak |
+| Mengelola pelanggan & kendaraan | Ya | Lihat kendaraan saja | Lihat |
+| Mengelola stok | Ya | Lihat | Lihat |
+| Melihat laporan | Terbatas | Tidak | Ya |
+| Melihat harga modal | Tidak | Tidak | Ya |
+
+Pelanggan **tidak punya akun**. Mereka memantau servisnya lewat link tracking
+yang diberikan saat order dibuat.

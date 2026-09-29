@@ -3,9 +3,9 @@ import { z } from "zod";
 
 import { createRateLimiter } from "../../middlewares/rate-limit.js";
 import { validate } from "../../middlewares/validate.js";
-import * as trackingController from "./tracking.controller.js";
+import * as orderController from "./service-order.controller.js";
 
-// Tidak memakai middleware JWT, tapi WAJIB punya rate limit (SPEC 15.8).
+// Tidak memakai middleware JWT, tapi WAJIB punya rate limit.
 // Token 64 karakter hex mustahil ditebak, tapi tanpa batas ini penebak bisa
 // membanjiri database dengan jutaan query.
 const trackingLimiter = createRateLimiter({
@@ -27,7 +27,7 @@ router.get(
     "/service-orders/track/:token",
     trackingLimiter,
     validate(trackSchema),
-    trackingController.track,
+    orderController.track,
 );
 
 export default router;

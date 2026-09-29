@@ -3,7 +3,7 @@ import { randomBytes } from "node:crypto";
 import { env } from "../config/env.js";
 import { hashSHA256 } from "./hash.js";
 
-// Token tracking untuk pelanggan tanpa login (SPEC 9).
+// Token tracking untuk pelanggan tanpa login.
 // Token mentah HANYA dikirim ke pelanggan; database menyimpan hash-nya.
 export const generateTrackingToken = () => {
     // 32 byte acak kriptografis = 64 karakter hex. Mustahil ditebak.

@@ -1,9 +1,8 @@
 import { ServiceOrder } from "../service-orders/service-order.model.js";
 import { ORDER_STATUS } from "../service-orders/service-order.status.js";
 import { SparePart } from "../spare-parts/spare-part.model.js";
-import { sparePartRepository } from "../spare-parts/spare-part.repository.js";
-import { StockMovement } from "../stock-movements/stock-movement.model.js";
-import { MOVEMENT_TYPES } from "../stock-movements/stock-movement.model.js";
+import { lowStockFilter } from "../spare-parts/spare-part.service.js";
+import { MOVEMENT_TYPES, StockMovement } from "../stock-movements/stock-movement.model.js";
 
 // "2026-09-26" diartikan JavaScript sebagai tengah malam UTC, sedangkan
 // serviceDate disimpan sebagai tengah malam waktu LOKAL bengkel. Tanpa
@@ -117,7 +116,7 @@ export const revenueSummary = async (query) => {
 };
 
 // includeCost hanya true untuk OWNER: harga modal dan margin bukan konsumsi
-// admin (SPEC 10.2).
+// admin.
 export const partsUsage = async (query, { includeCost = false } = {}) => {
     const range = dateRange(query);
     const match = { type: MOVEMENT_TYPES.USAGE };
@@ -164,7 +163,7 @@ export const partsUsage = async (query, { includeCost = false } = {}) => {
 };
 
 export const lowStockReport = async () => {
-    const filter = sparePartRepository.lowStockFilter();
+    const filter = lowStockFilter();
     const parts = await SparePart.find(filter).sort({ currentStock: 1 });
 
     return parts.map((part) => ({

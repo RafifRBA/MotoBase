@@ -1,9 +1,37 @@
-import { toStockMovementResponse } from "../stock-movements/stock-movement.mapper.js";
-import * as movementService from "../stock-movements/stock-movement.service.js";
-import { canSeeCostPrice, toSparePartResponse } from "./spare-part.mapper.js";
+import { ROLES } from "../users/user.model.js";
+import {
+    listMovements,
+    toStockMovementResponse,
+} from "../stock-movements/stock-movement.controller.js";
 import * as sparePartService from "./spare-part.service.js";
 
-// Header opsional. Kalau diisi, dipakai supaya retry tidak mengubah stok dua kali.
+// Harga modal hanya untuk pemilik; kasir dan mekanik cukup harga jual.
+const canSeeCostPrice = (user) => user?.role === ROLES.OWNER;
+
+const toSparePartResponse = (part, { includeCostPrice = false } = {}) => {
+    const response = {
+        id: part.id,
+        sku: part.sku,
+        name: part.name,
+        category: part.category ?? null,
+        sellingPrice: part.sellingPrice,
+        currentStock: part.currentStock,
+        minimumStock: part.minimumStock,
+        unit: part.unit,
+        isActive: part.isActive,
+        isLowStock: part.currentStock <= part.minimumStock,
+        createdAt: part.createdAt,
+        updatedAt: part.updatedAt,
+    };
+
+    if (includeCostPrice) response.purchasePrice = part.purchasePrice;
+
+    return response;
+};
+
+export { canSeeCostPrice, toSparePartResponse };
+
+// Header opsional. Kalau diisi, retry tidak akan mengubah stok dua kali.
 const idempotencyKeyOf = (req) => {
     const key = req.get("idempotency-key");
     return typeof key === "string" && key.trim().length > 0 ? key.trim().slice(0, 128) : undefined;
@@ -71,7 +99,6 @@ const sendStockResult = (req, res, message, { part, movement }) =>
         data: {
             sparePart: toSparePartResponse(part, { includeCostPrice: canSeeCostPrice(req.user) }),
             movement: toStockMovementResponse(movement),
-            // Dipakai frontend untuk memunculkan peringatan stok menipis.
             isLowStock: part.currentStock <= part.minimumStock,
         },
     });
@@ -99,10 +126,10 @@ export const adjustStock = async (req, res) => {
 };
 
 export const listMovementsOfPart = async (req, res) => {
-    // Memastikan part-nya ada supaya id ngawur menghasilkan 404, bukan daftar kosong.
+    // Part-nya dipastikan ada supaya id ngawur menghasilkan 404, bukan daftar kosong.
     await sparePartService.getSparePartById(req.validated.params.id);
 
-    const { movements, meta } = await movementService.listMovements({
+    const { movements, meta } = await listMovements({
         ...req.validated.query,
         sparePartId: req.validated.params.id,
     });

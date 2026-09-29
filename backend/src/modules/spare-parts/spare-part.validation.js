@@ -3,7 +3,7 @@ import { z } from "zod";
 import { paginationSchema } from "../../utils/pagination.js";
 import { objectIdSchema } from "../users/user.validation.js";
 
-// Rupiah selalu bilangan bulat (SPEC 12.4).
+// Rupiah selalu bilangan bulat.
 const rupiahSchema = z.coerce.number().int().min(0).max(1_000_000_000);
 const quantitySchema = z.coerce.number().int().min(1).max(100_000);
 

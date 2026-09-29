@@ -1,18 +1,18 @@
 import ApiError from "../../utils/api-error.js";
 import logger from "../../utils/logger.js";
 import { buildMeta, escapeRegExp, toSkip } from "../../utils/pagination.js";
-import { generateTrackingToken } from "../../utils/tracking-token.js";
+import { generateTrackingToken, hashTrackingToken } from "../../utils/tracking-token.js";
 import { isDuplicateKeyError, withTransaction } from "../../utils/transaction.js";
+import { Customer } from "../customers/customer.model.js";
 import { getCustomerById } from "../customers/customer.service.js";
 import { MOVEMENT_TYPES } from "../stock-movements/stock-movement.model.js";
-import { stockMovementRepository } from "../stock-movements/stock-movement.repository.js";
-import { sparePartRepository } from "../spare-parts/spare-part.repository.js";
-import { ROLES } from "../users/user.model.js";
-import { userRepository } from "../users/user.repository.js";
-import { vehicleRepository } from "../vehicles/vehicle.repository.js";
+import { StockMovement } from "../stock-movements/stock-movement.model.js";
+import { SparePart } from "../spare-parts/spare-part.model.js";
+import { decreaseStock, returnStock } from "../spare-parts/spare-part.service.js";
+import { ROLES, User } from "../users/user.model.js";
+import { Vehicle } from "../vehicles/vehicle.model.js";
 import { nextSequence } from "./counter.model.js";
 import { PAYMENT_STATUS, ServiceOrder } from "./service-order.model.js";
-import { serviceOrderRepository } from "./service-order.repository.js";
 import {
     ORDER_STATUS,
     STATUSES_ALLOWING_PART_USAGE,
@@ -30,8 +30,7 @@ const startOfDay = (date = new Date()) =>
 const dateKey = (date) =>
     `${date.getFullYear()}${String(date.getMonth() + 1).padStart(2, "0")}${String(date.getDate()).padStart(2, "0")}`;
 
-// Total selalu dihitung ulang di backend (SPEC 29 poin 7), tidak pernah
-// dipercaya dari frontend.
+// Total selalu dihitung ulang di backend, tidak pernah dipercaya dari frontend.
 const recalculateTotals = (order) => {
     order.partsSubtotal = order.usedParts.reduce((sum, part) => sum + part.subtotal, 0);
     order.grandTotal = order.serviceCost + order.partsSubtotal;
@@ -49,7 +48,7 @@ const appendStatus = (order, to, actor, { note = null, isCorrection = false } = 
     order.currentStatus = to;
 };
 
-// Mekanik hanya boleh menyentuh order yang ditugaskan kepadanya (SPEC 27 poin 2).
+// Mekanik hanya boleh menyentuh order yang ditugaskan kepadanya.
 const assertCanModify = (order, actor) => {
     if (actor.role === ROLES.MECHANIC) {
         if (!order.assignedMechanicId || !order.assignedMechanicId.equals(actor._id)) {
@@ -68,7 +67,7 @@ const assertCanModify = (order, actor) => {
 };
 
 export const getOrderById = async (id, session = null) => {
-    const order = await serviceOrderRepository.findById(id, session);
+    const order = await ServiceOrder.findById(id).session(session);
     if (!order) throw notFound();
     return order;
 };
@@ -88,7 +87,7 @@ export const listOrders = async (query, actor) => {
         if (query.endDate) filter.serviceDate.$lte = query.endDate;
     }
 
-    // Mekanik hanya melihat pekerjaannya sendiri (SPEC 6.1: "terbatas").
+    // Mekanik hanya melihat pekerjaannya sendiri ("terbatas").
     if (actor.role === ROLES.MECHANIC) {
         filter.assignedMechanicId = actor._id;
     } else if (query.assignedMechanicId) {
@@ -96,15 +95,18 @@ export const listOrders = async (query, actor) => {
     }
 
     const [orders, total] = await Promise.all([
-        serviceOrderRepository.list(filter, { skip: toSkip(query), limit: query.limit }),
-        serviceOrderRepository.count(filter),
+        ServiceOrder.find(filter)
+            .sort({ serviceDate: -1, queueNumber: -1 })
+            .skip(toSkip(query))
+            .limit(query.limit),
+        ServiceOrder.countDocuments(filter),
     ]);
 
     return { orders, meta: buildMeta({ ...query, total }) };
 };
 
 const findMechanic = async (mechanicId) => {
-    const mechanic = await userRepository.findById(mechanicId);
+    const mechanic = await User.findById(mechanicId);
     if (!mechanic || mechanic.role !== ROLES.MECHANIC) {
         throw new ApiError(404, "MECHANIC_NOT_FOUND", "Mekanik tidak ditemukan");
     }
@@ -117,7 +119,7 @@ const findMechanic = async (mechanicId) => {
 export const createOrder = async (data, actor) => {
     const customer = await getCustomerById(data.customerId);
 
-    const vehicle = await vehicleRepository.findById(data.vehicleId);
+    const vehicle = await Vehicle.findById(data.vehicleId);
     if (!vehicle) throw new ApiError(404, "VEHICLE_NOT_FOUND", "Kendaraan tidak ditemukan");
 
     // Mencegah servis tercatat atas nama pelanggan yang bukan pemilik kendaraan.
@@ -138,32 +140,34 @@ export const createOrder = async (data, actor) => {
         const queueNumber = await nextSequence(`service-order:${dateKey(serviceDate)}`, session);
         const orderNumber = `SRV-${dateKey(serviceDate)}-${String(queueNumber).padStart(4, "0")}`;
 
-        const created = await serviceOrderRepository.create(
-            {
-                orderNumber,
-                queueNumber,
-                serviceDate,
-                customerId: customer._id,
-                vehicleId: vehicle._id,
-                assignedMechanicId: data.assignedMechanicId ?? null,
-                complaint: data.complaint,
-                internalNotes: data.internalNotes ?? null,
-                serviceCost: data.serviceCost,
-                grandTotal: data.serviceCost,
-                currentStatus: ORDER_STATUS.ANTRE,
-                trackingTokenHash: tracking.tokenHash,
-                trackingExpiresAt: tracking.expiresAt,
-                statusHistory: [
-                    {
-                        from: null,
-                        to: ORDER_STATUS.ANTRE,
-                        changedBy: actor._id,
-                        changedAt: new Date(),
-                    },
-                ],
-                createdBy: actor._id,
-            },
-            session,
+        const [created] = await ServiceOrder.create(
+            [
+                {
+                    orderNumber,
+                    queueNumber,
+                    serviceDate,
+                    customerId: customer._id,
+                    vehicleId: vehicle._id,
+                    assignedMechanicId: data.assignedMechanicId ?? null,
+                    complaint: data.complaint,
+                    internalNotes: data.internalNotes ?? null,
+                    serviceCost: data.serviceCost,
+                    grandTotal: data.serviceCost,
+                    currentStatus: ORDER_STATUS.ANTRE,
+                    trackingTokenHash: tracking.tokenHash,
+                    trackingExpiresAt: tracking.expiresAt,
+                    statusHistory: [
+                        {
+                            from: null,
+                            to: ORDER_STATUS.ANTRE,
+                            changedBy: actor._id,
+                            changedAt: new Date(),
+                        },
+                    ],
+                    createdBy: actor._id,
+                },
+            ],
+            { session },
         );
 
         return created;
@@ -175,7 +179,7 @@ export const createOrder = async (data, actor) => {
     );
 
     // Token mentah hanya dikembalikan sekali, di sini. Setelah ini hanya
-    // hash-nya yang tersimpan (SPEC 9).
+    // hash-nya yang tersimpan.
     return { order, trackingToken: tracking.token };
 };
 
@@ -225,7 +229,7 @@ export const changeStatus = async (id, { status, note, isCorrection }, actor) =>
 
     if (isCorrection) {
         // Koreksi mundur adalah aksi khusus milik admin, dan selalu tercatat
-        // sebagai koreksi di history (SPEC 11).
+        // sebagai koreksi di history.
         if (actor.role !== ROLES.ADMIN) {
             throw new ApiError(403, "FORBIDDEN", "Koreksi status hanya bisa dilakukan admin");
         }
@@ -251,7 +255,7 @@ export const changeStatus = async (id, { status, note, isCorrection }, actor) =>
         "Status service order berubah",
     );
 
-    // Titik pemasangan notifikasi "motor siap diambil" (SPEC 22). Sengaja
+    // Titik pemasangan notifikasi "motor siap diambil". Sengaja
     // dipanggil setelah database berhasil disimpan, dan kegagalan notifikasi
     // tidak boleh membatalkan perubahan status.
     return order;
@@ -259,7 +263,7 @@ export const changeStatus = async (id, { status, note, isCorrection }, actor) =>
 
 export const addPartUsage = async (id, { sparePartId, quantity }, actor, idempotencyKey) => {
     if (idempotencyKey) {
-        const existing = await stockMovementRepository.findByIdempotencyKey(idempotencyKey);
+        const existing = await StockMovement.findOne({ idempotencyKey });
         if (existing) return { order: await getOrderById(id), replayed: true };
     }
 
@@ -277,11 +281,11 @@ export const addPartUsage = async (id, { sparePartId, quantity }, actor, idempot
             }
 
             // Filter "stok cukup" menyatu dengan operasi pengurangan, jadi stok
-            // tidak mungkin menjadi negatif (SPEC 14).
-            const part = await sparePartRepository.decreaseStock(sparePartId, quantity, session);
+            // tidak mungkin menjadi negatif.
+            const part = await decreaseStock(sparePartId, quantity, session);
 
             if (!part) {
-                const existing = await sparePartRepository.findById(sparePartId, session);
+                const existing = await SparePart.findById(sparePartId).session(session);
                 if (!existing) {
                     throw new ApiError(404, "SPARE_PART_NOT_FOUND", "Suku cadang tidak ditemukan");
                 }
@@ -295,20 +299,22 @@ export const addPartUsage = async (id, { sparePartId, quantity }, actor, idempot
                 );
             }
 
-            const movement = await stockMovementRepository.create(
-                {
-                    sparePartId: part._id,
-                    serviceOrderId: current._id,
-                    type: MOVEMENT_TYPES.USAGE,
-                    quantity,
-                    stockBefore: part.currentStock + quantity,
-                    stockAfter: part.currentStock,
-                    reason: `Dipakai pada ${current.orderNumber}`,
-                    referenceId: current.orderNumber,
-                    idempotencyKey,
-                    createdBy: actor._id,
-                },
-                session,
+            const [movement] = await StockMovement.create(
+                [
+                    {
+                        sparePartId: part._id,
+                        serviceOrderId: current._id,
+                        type: MOVEMENT_TYPES.USAGE,
+                        quantity,
+                        stockBefore: part.currentStock + quantity,
+                        stockAfter: part.currentStock,
+                        reason: `Dipakai pada ${current.orderNumber}`,
+                        referenceId: current.orderNumber,
+                        idempotencyKey,
+                        createdBy: actor._id,
+                    },
+                ],
+                { session },
             );
 
             // Harga disalin saat ini juga, supaya perubahan harga di kemudian
@@ -336,7 +342,7 @@ export const addPartUsage = async (id, { sparePartId, quantity }, actor, idempot
             return current;
         });
 
-        const part = await sparePartRepository.findById(sparePartId);
+        const part = await SparePart.findById(sparePartId);
         return {
             order,
             replayed: false,
@@ -374,27 +380,25 @@ export const removePartUsage = async (id, usageId, { reason }, actor) => {
 
         // Stok dikembalikan tanpa syarat isActive: pembatalan harus tetap bisa
         // dilakukan walaupun part sudah dinonaktifkan sejak dipakai.
-        const part = await sparePartRepository.returnStock(
-            usage.sparePartId,
-            usage.quantity,
-            session,
-        );
+        const part = await returnStock(usage.sparePartId, usage.quantity, session);
 
         // StockMovement bersifat append-only: catatan lama tidak dihapus,
-        // melainkan diimbangi movement baru bertipe REVERSAL (SPEC 12.6).
-        await stockMovementRepository.create(
-            {
-                sparePartId: usage.sparePartId,
-                serviceOrderId: order._id,
-                type: MOVEMENT_TYPES.REVERSAL,
-                quantity: usage.quantity,
-                stockBefore: part.currentStock - usage.quantity,
-                stockAfter: part.currentStock,
-                reason: reason ?? `Pembatalan pemakaian pada ${order.orderNumber}`,
-                referenceId: order.orderNumber,
-                createdBy: actor._id,
-            },
-            session,
+        // melainkan diimbangi movement baru bertipe REVERSAL.
+        await StockMovement.create(
+            [
+                {
+                    sparePartId: usage.sparePartId,
+                    serviceOrderId: order._id,
+                    type: MOVEMENT_TYPES.REVERSAL,
+                    quantity: usage.quantity,
+                    stockBefore: part.currentStock - usage.quantity,
+                    stockAfter: part.currentStock,
+                    reason: reason ?? `Pembatalan pemakaian pada ${order.orderNumber}`,
+                    referenceId: order.orderNumber,
+                    createdBy: actor._id,
+                },
+            ],
+            { session },
         );
 
         order.usedParts.pull(usageId);
@@ -451,22 +455,80 @@ export const payOrder = async (id, { method }, actor) => {
 };
 
 export const listOrdersByVehicle = async (vehicleId) => {
-    const vehicle = await vehicleRepository.findById(vehicleId);
+    const vehicle = await Vehicle.findById(vehicleId);
     if (!vehicle) throw new ApiError(404, "VEHICLE_NOT_FOUND", "Kendaraan tidak ditemukan");
 
-    return serviceOrderRepository.listByVehicle(vehicleId);
+    return ServiceOrder.find({ vehicleId }).sort({ serviceDate: -1 });
 };
 
 export const listOrdersByCustomer = async (customerId, query) => {
     await getCustomerById(customerId);
 
     const [orders, total] = await Promise.all([
-        serviceOrderRepository.listByCustomer(customerId, {
-            skip: toSkip(query),
-            limit: query.limit,
-        }),
+        ServiceOrder.find({ customerId })
+            .sort({ serviceDate: -1 })
+            .skip(toSkip(query))
+            .limit(query.limit),
         ServiceOrder.countDocuments({ customerId }),
     ]);
 
     return { orders, meta: buildMeta({ ...query, total }) };
+};
+
+// ── Tracking publik ───────────────────────────────────────────────────────────
+
+// Satu pesan error untuk semua kegagalan: token salah, kedaluwarsa, dan dicabut
+// tidak dibedakan. Membedakannya akan memberi tahu penebak bahwa token yang ia
+// coba pernah ada.
+const invalidTrackingToken = () =>
+    new ApiError(404, "TRACKING_NOT_FOUND", "Link tracking tidak valid atau sudah kedaluwarsa");
+
+export const findOrderByTrackingToken = async (rawToken) => {
+    if (typeof rawToken !== "string" || rawToken.length !== 64) throw invalidTrackingToken();
+
+    // Token dari URL di-hash lalu dibandingkan dengan yang tersimpan; token
+    // mentah tidak pernah ada di database.
+    const order = await ServiceOrder.findOne({ trackingTokenHash: hashTrackingToken(rawToken) });
+    if (!order) throw invalidTrackingToken();
+
+    if (order.trackingRevokedAt) throw invalidTrackingToken();
+    if (order.trackingExpiresAt && order.trackingExpiresAt <= new Date()) {
+        throw invalidTrackingToken();
+    }
+
+    const [customer, vehicle, mechanic] = await Promise.all([
+        Customer.findById(order.customerId),
+        Vehicle.findById(order.vehicleId),
+        order.assignedMechanicId ? User.findById(order.assignedMechanicId) : null,
+    ]);
+
+    return { order, customer, vehicle, mechanic };
+};
+
+// Token lama langsung tidak berlaku begitu yang baru diterbitkan.
+export const rotateTrackingToken = async (orderId, actor) => {
+    const order = await getOrderById(orderId);
+    const tracking = generateTrackingToken();
+
+    order.trackingTokenHash = tracking.tokenHash;
+    order.trackingExpiresAt = tracking.expiresAt;
+    order.trackingRevokedAt = null;
+    await order.save();
+
+    logger.info({ actorId: actor.id, orderId: order.id }, "Tracking token dibuat ulang");
+    return { order, trackingToken: tracking.token };
+};
+
+export const revokeTrackingToken = async (orderId, actor) => {
+    const order = await getOrderById(orderId);
+
+    if (order.trackingRevokedAt) {
+        throw new ApiError(409, "TRACKING_ALREADY_REVOKED", "Link tracking sudah dicabut");
+    }
+
+    order.trackingRevokedAt = new Date();
+    await order.save();
+
+    logger.info({ actorId: actor.id, orderId: order.id }, "Tracking token dicabut");
+    return order;
 };

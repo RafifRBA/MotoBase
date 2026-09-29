@@ -1,5 +1,15 @@
-import { toCustomerResponse } from "./customer.mapper.js";
 import * as customerService from "./customer.service.js";
+
+export const toCustomerResponse = (customer) => ({
+    id: customer.id,
+    name: customer.name,
+    phone: customer.phone,
+    email: customer.email ?? null,
+    address: customer.address ?? null,
+    notes: customer.notes ?? null,
+    createdAt: customer.createdAt,
+    updatedAt: customer.updatedAt,
+});
 
 export const list = async (req, res) => {
     const { customers, meta } = await customerService.listCustomers(req.validated.query);

@@ -1,4 +1,4 @@
-import { canSeeCostPrice } from "../spare-parts/spare-part.mapper.js";
+import { canSeeCostPrice } from "../spare-parts/spare-part.controller.js";
 import * as reportService from "./report.service.js";
 
 const ok = (res, data, meta) =>

@@ -1,7 +1,7 @@
 import mongoose from "mongoose";
 
 // Menjalankan fn di dalam satu MongoDB transaction: semua berhasil, atau semua
-// dibatalkan (SPEC 14). Wajib untuk operasi yang menyentuh lebih dari satu
+// dibatalkan. Wajib untuk operasi yang menyentuh lebih dari satu
 // collection dan harus konsisten, misalnya mengurangi stok sekaligus mencatat
 // StockMovement.
 //

@@ -1,4 +1,4 @@
-// Penyamaran data untuk log dan response publik (SPEC 10 & 24).
+// Penyamaran data untuk log dan response publik.
 
 export const maskEmail = (email) => {
     if (typeof email !== "string" || !email.includes("@")) return "***";
@@ -14,7 +14,7 @@ export const maskName = (name) => {
     return `${name.trim().slice(0, 2)}***`;
 };
 
-// Nama publik mekanik: hanya nama depan (SPEC 10.1).
+// Nama publik mekanik: hanya nama depan.
 export const publicFirstName = (name) => {
     if (typeof name !== "string" || name.trim() === "") return null;
     return name.trim().split(/\s+/)[0];

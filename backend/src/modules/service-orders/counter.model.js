@@ -1,6 +1,6 @@
 import mongoose from "mongoose";
 
-// Penomoran urut yang aman terhadap dua request bersamaan (SPEC 13).
+// Penomoran urut yang aman terhadap dua request bersamaan.
 // JANGAN memakai countDocuments() + 1: dua request bisa membaca angka yang sama
 // lalu menghasilkan nomor kembar.
 const counterSchema = new mongoose.Schema(

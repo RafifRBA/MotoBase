@@ -4,7 +4,6 @@ export const ROLES = Object.freeze({
     ADMIN: "ADMIN",
     MECHANIC: "MECHANIC",
     OWNER: "OWNER",
-    CUSTOMER: "CUSTOMER",
 });
 
 const emptyToUndefined = (value) => {

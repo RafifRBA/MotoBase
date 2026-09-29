@@ -11,8 +11,8 @@ const router = Router();
 
 router.use(authenticate);
 
-// SPEC 6.1: pemilik melihat semua laporan, admin hanya sebagian ("terbatas").
-// Pendapatan dan penilaian kinerja mekanik adalah wewenang pemilik.
+// Pemilik melihat semua laporan; admin hanya sebagian. Pendapatan dan
+// penilaian kinerja mekanik adalah wewenang pemilik.
 const ownerOnly = authorize(ROLES.OWNER);
 const ownerOrAdmin = authorize(ROLES.OWNER, ROLES.ADMIN);
 

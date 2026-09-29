@@ -2,8 +2,8 @@ import ApiError from "../../utils/api-error.js";
 import logger from "../../utils/logger.js";
 import { buildMeta, escapeRegExp, toSkip } from "../../utils/pagination.js";
 import { hashPassword } from "../auth/password.js";
-import { refreshTokenRepository } from "../auth/refresh-token.repository.js";
-import { userRepository } from "./user.repository.js";
+import { RefreshToken } from "../auth/refresh-token.model.js";
+import { User } from "./user.model.js";
 
 const notFound = () => new ApiError(404, "USER_NOT_FOUND", "User tidak ditemukan");
 
@@ -21,15 +21,15 @@ const buildFilter = ({ role, isActive, search }) => {
 export const listUsers = async (query) => {
     const filter = buildFilter(query);
     const [users, total] = await Promise.all([
-        userRepository.list(filter, { skip: toSkip(query), limit: query.limit }),
-        userRepository.count(filter),
+        User.find(filter).sort({ createdAt: -1 }).skip(toSkip(query)).limit(query.limit),
+        User.countDocuments(filter),
     ]);
 
     return { users, meta: buildMeta({ ...query, total }) };
 };
 
 export const getUserById = async (id) => {
-    const user = await userRepository.findById(id);
+    const user = await User.findById(id);
     if (!user) throw notFound();
     return user;
 };
@@ -37,17 +37,14 @@ export const getUserById = async (id) => {
 export const createUser = async (data, actor) => {
     const { password, ...rest } = data;
 
-    if (await userRepository.findByEmail(rest.email)) {
+    if (await User.findOne({ email: rest.email })) {
         throw new ApiError(409, "EMAIL_ALREADY_USED", "Email sudah dipakai user lain");
     }
-    if (rest.phone && (await userRepository.findByPhone(rest.phone))) {
+    if (rest.phone && (await User.findOne({ phone: rest.phone }))) {
         throw new ApiError(409, "PHONE_ALREADY_USED", "Nomor telepon sudah dipakai user lain");
     }
 
-    const user = await userRepository.create({
-        ...rest,
-        passwordHash: await hashPassword(password),
-    });
+    const user = await User.create({ ...rest, passwordHash: await hashPassword(password) });
 
     logger.info({ actorId: actor.id, userId: user.id, role: user.role }, "User dibuat");
     return user;
@@ -57,13 +54,13 @@ export const updateUser = async (id, data, actor) => {
     const user = await getUserById(id);
 
     if (data.email && data.email !== user.email) {
-        const existing = await userRepository.findByEmail(data.email);
+        const existing = await User.findOne({ email: data.email });
         if (existing && existing.id !== user.id) {
             throw new ApiError(409, "EMAIL_ALREADY_USED", "Email sudah dipakai user lain");
         }
     }
     if (data.phone && data.phone !== user.phone) {
-        const existing = await userRepository.findByPhone(data.phone);
+        const existing = await User.findOne({ phone: data.phone });
         if (existing && existing.id !== user.id) {
             throw new ApiError(409, "PHONE_ALREADY_USED", "Nomor telepon sudah dipakai user lain");
         }
@@ -90,10 +87,13 @@ export const setUserStatus = async (id, isActive, actor) => {
     user.isActive = isActive;
     await user.save();
 
-    // Menonaktifkan akun harus langsung memutus sesi yang sedang berjalan,
-    // bukan menunggu refresh token-nya kedaluwarsa sendiri.
+    // Akun yang dinonaktifkan harus langsung kehilangan sesinya, bukan menunggu
+    // refresh token-nya kedaluwarsa sendiri.
     if (!isActive) {
-        await refreshTokenRepository.revokeAllForUser(user._id, new Date());
+        await RefreshToken.updateMany(
+            { userId: user._id, revokedAt: null },
+            { $set: { revokedAt: new Date() } },
+        );
     }
 
     logger.info({ actorId: actor.id, userId: user.id, isActive }, "Status user diubah");

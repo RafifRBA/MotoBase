@@ -1,7 +1,10 @@
 # MotoBase Backend
 
 REST API untuk operasional Bengkel Motor Laju Jaya: antrean servis, stok suku
-cadang, riwayat kendaraan, tracking pelanggan, dan laporan pemilik.
+cadang, riwayat kendaraan, tracking pelanggan tanpa login, dan laporan pemilik.
+
+Tiga peran: **admin/kasir** membuat order, **mekanik** memperbarui status dan
+mencatat suku cadang, **pemilik** melihat laporan.
 
 Stack: Node.js 24, Express 5, MongoDB Atlas + Mongoose, Zod, JWT, Pino, Vitest.
 
@@ -58,15 +61,24 @@ src/
 └── utils/         hash, phone, mask, pagination, transaction, tracking-token
 ```
 
-Tiap modul memakai pola yang sama: `model` (schema + index) → `repository`
-(query) → `service` (aturan bisnis & transaction) → `controller` (HTTP) →
-`route` (URL + middleware), dengan `validation` (Zod) dan `mapper` (bentuk
-response) di sampingnya.
+Tiap modul memakai pola yang sama dan hanya empat lapis:
 
-## Dokumentasi API
+| File | Isi |
+|---|---|
+| `*.model.js` | schema Mongoose + index |
+| `*.validation.js` | schema Zod untuk body, params, dan query |
+| `*.service.js` | aturan bisnis + query database |
+| `*.controller.js` | terjemahan HTTP + bentuk response yang dikirim ke client |
+| `*.route.js` | URL + middleware (authenticate, authorize, validate) |
 
-Ada di [docs/API.md](docs/API.md): seluruh endpoint, kode error, aturan
-otorisasi, dan asumsi yang diambil untuk hal-hal yang belum diputuskan.
+Menambah endpoint baru berarti menyentuh empat file itu saja. Contoh paling
+mudah ditiru: modul `customers`.
+
+## Dokumentasi
+
+| Dokumen | Untuk siapa |
+|---|---|
+| [docs/API.md](docs/API.md) | referensi lengkap: tiap endpoint, kode error, aturan otorisasi, asumsi yang diambil |
 
 ## Catatan pengembangan
 

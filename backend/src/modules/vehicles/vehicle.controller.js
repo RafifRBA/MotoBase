@@ -1,5 +1,18 @@
-import { toVehicleResponse } from "./vehicle.mapper.js";
 import * as vehicleService from "./vehicle.service.js";
+
+export const toVehicleResponse = (vehicle) => ({
+    id: vehicle.id,
+    customerId: vehicle.customerId.toString(),
+    licensePlate: vehicle.licensePlate,
+    brand: vehicle.brand,
+    model: vehicle.model,
+    year: vehicle.year ?? null,
+    color: vehicle.color ?? null,
+    chassisNumber: vehicle.chassisNumber ?? null,
+    engineNumber: vehicle.engineNumber ?? null,
+    createdAt: vehicle.createdAt,
+    updatedAt: vehicle.updatedAt,
+});
 
 export const list = async (req, res) => {
     const { vehicles, meta } = await vehicleService.listVehicles(req.validated.query);

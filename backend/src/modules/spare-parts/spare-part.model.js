@@ -9,7 +9,7 @@ const sparePartSchema = new mongoose.Schema(
         name: { type: String, required: true, trim: true, maxlength: 150 },
         category: { type: String, trim: true, maxlength: 50, set: emptyToUndefined },
 
-        // Nilai uang disimpan sebagai INTEGER rupiah (SPEC 12.4): 75000, bukan
+        // Nilai uang disimpan sebagai INTEGER rupiah: 75000, bukan
         // 75000.00. Bilangan pecahan biner tidak bisa menyimpan nilai desimal
         // dengan tepat, dan kesalahan sepersekian rupiah akan menumpuk di total.
         sellingPrice: { type: Number, required: true, min: 0 },

@@ -14,8 +14,8 @@ beforeAll(connectTestDB);
 afterEach(clearTestDB);
 afterAll(disconnectTestDB);
 
-// Route contoh: Tahap 2 belum punya endpoint yang dibatasi role, jadi middleware
-// diuji lewat aplikasi kecil di sini.
+// Aplikasi kecil khusus tes, supaya middleware otorisasi bisa diuji terpisah
+// dari endpoint bisnis yang sesungguhnya.
 const app = express();
 app.get("/owner-only", authenticate, authorize(ROLES.OWNER), (req, res) =>
     res.json({ success: true, role: req.user.role }),
@@ -45,29 +45,20 @@ describe("authorize", () => {
         expect(res.status).toBe(200);
     });
 
-    it.each([ROLES.ADMIN, ROLES.MECHANIC, ROLES.CUSTOMER])(
-        "%s ditolak 403 di route khusus owner",
-        async (role) => {
-            const token = await asRole(role);
-            const res = await request(app)
-                .get("/owner-only")
-                .set("Authorization", `Bearer ${token}`);
+    it.each([ROLES.ADMIN, ROLES.MECHANIC])("%s ditolak 403 di route khusus owner", async (role) => {
+        const token = await asRole(role);
+        const res = await request(app).get("/owner-only").set("Authorization", `Bearer ${token}`);
 
-            expect(res.status).toBe(403);
-            expect(res.body.error.code).toBe("FORBIDDEN");
-        },
-    );
+        expect(res.status).toBe(403);
+        expect(res.body.error.code).toBe("FORBIDDEN");
+    });
 
-    it("CUSTOMER ditolak di route staf, tiga role internal diterima", async () => {
+    it("tiga role internal diterima di route staf", async () => {
         for (const role of [ROLES.OWNER, ROLES.ADMIN, ROLES.MECHANIC]) {
             const token = await asRole(role);
             const res = await request(app).get("/staff").set("Authorization", `Bearer ${token}`);
             expect(res.status).toBe(200);
         }
-
-        const token = await asRole(ROLES.CUSTOMER);
-        const res = await request(app).get("/staff").set("Authorization", `Bearer ${token}`);
-        expect(res.status).toBe(403);
     });
 
     it("role dibaca dari database, bukan dari isi token", async () => {
