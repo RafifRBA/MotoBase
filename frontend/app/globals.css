@@ -1,0 +1,35 @@
+@import "tailwindcss";
+
+@theme {
+  --color-brand-50: #fff4ec;
+  --color-brand-100: #ffe3d0;
+  --color-brand-200: #ffc7a1;
+  --color-brand-500: #f26a1b;
+  --color-brand-600: #dc5a0f;
+  --color-brand-700: #b3460b;
+  --color-brand-900: #5c2406;
+  --color-asphalt-800: #23272e;
+  --color-asphalt-900: #181b20;
+  --font-sans: ui-sans-serif, system-ui, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+}
+
+:root {
+  color-scheme: light;
+}
+
+body {
+  background: #eef0f2;
+  color: #1b1f24;
+  font-variant-numeric: tabular-nums;
+}
+
+dialog::backdrop {
+  background: rgb(24 27 32 / 0.55);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  * {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
+}
