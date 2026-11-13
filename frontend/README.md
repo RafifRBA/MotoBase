@@ -38,3 +38,11 @@ types/          tipe respons dan model
 ```
 
 Nama query param backend ada di `lib/api-contract.ts`.
+
+
+##Role"
+Pemilik: owner@motobase.id. Bisa melihat laporan, pengguna, dan harga modal.
+Kasir: admin@motobase.id. Bisa servis baru, pelanggan, kendaraan, stok, dan pembayaran.
+Mekanik: mekanik@motobase.id. Hanya melihat tugasnya, mengubah status, dan memakai suku cadang.
+Customer: pelanggan@motobase.id
+Kata sandi untuk semua: password123
