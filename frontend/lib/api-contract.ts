@@ -9,8 +9,8 @@ export const QUERY = {
   search: "search",
   role: "role",
   status: "status",
-  from: "from",
-  to: "to",
+  from: "startDate",
+  to: "endDate",
 } as const;
 
 export function mapParams(params: Record<string, unknown> = {}) {

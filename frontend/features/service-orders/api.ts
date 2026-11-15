@@ -22,7 +22,7 @@ export const ordersApi = {
   addPart: (id: string, b: { sparePartId: string; quantity: number }) => apiPost<ServiceOrder>(`${base(id)}/parts`, b),
   removePart: (id: string, usageId: string) => apiDelete<ServiceOrder>(`${base(id)}/parts/${usageId}`),
   /** Cek nama field pada backend/docs/API.md jika ditolak (400 VALIDATION_ERROR). */
-  pay: (id: string, b: { paymentMethod: PaymentMethodValue }) => apiPost<ServiceOrder>(`${base(id)}/payment`, b),
+  pay: (id: string, b: { method: PaymentMethodValue }) => apiPost<ServiceOrder>(`${base(id)}/payment`, b),
   rotateTracking: (id: string) => apiPost<{ trackingToken?: string }>(`${base(id)}/rotate-tracking-token`),
   revokeTracking: (id: string) => apiPost<unknown>(`${base(id)}/revoke-tracking-token`),
 };

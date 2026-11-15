@@ -50,7 +50,7 @@ export function useSaveSparePart(id?: string) {
 export function useStockIn(id: string) {
   const invalidate = useInvalidateStock();
   return useMutation({
-    mutationFn: (b: { quantity: number; note?: string }) => sparePartsApi.stockIn(id, b),
+    mutationFn: (b: { quantity: number; reason?: string }) => sparePartsApi.stockIn(id, b),
     onSuccess: () => {
       invalidate();
       notifySuccess("Stok masuk tercatat");

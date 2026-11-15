@@ -16,10 +16,10 @@ const adjustSchema = z.object({
   note: z.string().trim().min(3, "Alasan penyesuaian wajib diisi"),
 });
 
-export function StockInForm({ loading, onSubmit, onCancel }: { loading?: boolean; onSubmit: (v: { quantity: number; note?: string }) => void | Promise<void>; onCancel: () => void }) {
+export function StockInForm({ loading, onSubmit, onCancel }: { loading?: boolean; onSubmit: (v: { quantity: number; reason?: string }) => void | Promise<void>; onCancel: () => void }) {
   const { register, handleSubmit, formState: { errors } } = useForm<z.infer<typeof inSchema>>({ resolver: zodResolver(inSchema), defaultValues: { quantity: "", note: "" } });
   return (
-    <form noValidate onSubmit={handleSubmit((v) => onSubmit({ quantity: Number(v.quantity), note: blankToUndefined(v.note) }))} className="space-y-4">
+    <form noValidate onSubmit={handleSubmit((v) => onSubmit({ quantity: Number(v.quantity), reason: blankToUndefined(v.note) }))} className="space-y-4">
       <Field label="Jumlah masuk" error={errors.quantity?.message}>
         <Input inputMode="numeric" autoFocus {...register("quantity")} />
       </Field>

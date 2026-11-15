@@ -100,7 +100,7 @@ export function useRemovePart(id: string) {
 export function usePayOrder(id: string) {
   const refresh = useRefreshOrder(id);
   return useMutation({
-    mutationFn: (paymentMethod: PaymentMethodValue) => ordersApi.pay(id, { paymentMethod }),
+    mutationFn: (paymentMethod: PaymentMethodValue) => ordersApi.pay(id, { method: paymentMethod }),
     onSuccess: () => {
       refresh();
       notifySuccess("Pembayaran tercatat");

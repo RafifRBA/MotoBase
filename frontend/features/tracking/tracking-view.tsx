@@ -64,7 +64,7 @@ function TrackingContent({ t }: { t: Tracking }) {
   const cancelled = t.currentStatus === "DIBATALKAN";
   const currentIndex = STATUS_FLOW.indexOf(t.currentStatus);
   const history = [...t.statusHistory].reverse();
-  const parts = t.usedParts ?? [];
+  const parts = t.usedSpareParts ?? [];
 
   return (
     <>

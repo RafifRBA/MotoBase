@@ -143,7 +143,7 @@ export interface TrackingView {
   partsSubtotal?: number;
   grandTotal?: number;
   paymentStatus?: string;
-  usedParts?: { name?: string; quantity: number; unitPrice?: number; subtotal?: number }[];
+  usedSpareParts?: { name?: string; quantity: number; unitPrice?: number; subtotal?: number }[];
 }
 
 export type { Role };

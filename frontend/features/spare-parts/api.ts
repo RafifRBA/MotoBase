@@ -20,7 +20,7 @@ export const sparePartsApi = {
   create: (b: SparePartInput) => apiPost<SparePart>("/spare-parts", b),
   update: (id: string, b: Partial<Omit<SparePartInput, "initialStock" | "sku">>) => apiPatch<SparePart>(`/spare-parts/${id}`, b),
   /** Cek nama field pada backend/docs/API.md jika backend menolak (400 VALIDATION_ERROR). */
-  stockIn: (id: string, b: { quantity: number; note?: string }) => apiPost<SparePart>(`/spare-parts/${id}/stock-in`, b),
+  stockIn: (id: string, b: { quantity: number; reason?: string }) => apiPost<SparePart>(`/spare-parts/${id}/stock-in`, b),
   adjustStock: (id: string, b: { newStock: number; note?: string }) => apiPost<SparePart>(`/spare-parts/${id}/adjust-stock`, b),
   movements: (id: string, p: ListParams) => apiList<StockMovement>(`/spare-parts/${id}/movements`, p),
   allMovements: (p: ListParams) => apiList<StockMovement>("/stock-movements", p),
