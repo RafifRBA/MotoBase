@@ -190,8 +190,9 @@ Nomor telepon **selalu dinormalisasi** ke `62xxxxxxxxxx` sebelum disimpan, jadi
 `0812…`, `+62812…`, dan `62812…` dianggap nomor yang sama. Nomor bersifat unik
 antar pelanggan supaya admin tidak keliru memilih data yang sama dua kali.
 
-`userId` bernilai `null` selama pelanggan belum punya akun, dan tidak bisa
-diubah lewat endpoint ini.
+Pelanggan yang mendaftar sendiri lewat portal (lihat bagian *Portal pelanggan*)
+tertaut ke akunnya lewat `User.customerId`. Pelanggan yang dibuat admin tidak
+punya akun.
 
 Kode error: `CUSTOMER_NOT_FOUND` (404), `PHONE_ALREADY_USED` (409).
 
@@ -299,6 +300,49 @@ pengurangan, dan seluruh perubahan berjalan dalam satu transaction.
 
 ---
 
+## Portal pelanggan
+
+Pelanggan bisa membuat akun sendiri, mendaftarkan kendaraan, dan mengajukan
+servis. Role-nya `CUSTOMER`, dan **tidak punya akses ke endpoint staf mana pun**
+(semuanya membalas 403). Seluruh data diambil dari akun yang login: tidak ada
+endpoint portal yang menerima `customerId` dari klien.
+
+| Endpoint | Role | Isi |
+|---|---|---|
+| `POST /auth/register-customer` | publik | `{ name, email, phone, password }`. Batas 20 pendaftaran per jam per IP. Setelah itu login seperti biasa lewat `/auth/login` |
+| `GET /customer/me` | CUSTOMER | profil pelanggan |
+| `GET /customer/vehicles?page&limit` | CUSTOMER | kendaraan milik sendiri |
+| `POST /customer/vehicles` | CUSTOMER | `{ licensePlate, brand, model, year?, color?, ... }`, pemilik otomatis akun yang login |
+| `GET /customer/service-orders?page&limit` | CUSTOMER | riwayat servis sendiri (DTO khusus, lihat di bawah) |
+| `GET /customer/service-requests?page&limit` | CUSTOMER | pengajuan sendiri |
+| `POST /customer/service-requests` | CUSTOMER | `{ vehicleId, complaint, serviceDate }`, maksimal 5 pengajuan menunggu sekaligus |
+| `GET /service-requests?status&page&limit` | ADMIN, OWNER | kotak masuk; default `status=MENUNGGU_VERIFIKASI` |
+| `PATCH /service-requests/:id` | ADMIN | `{ decision: "DITERIMA" \| "DITOLAK", serviceCost?, mechanicId?, note? }` |
+
+**Pengajuan bukan service order.** Pengajuan disimpan di koleksi tersendiri
+(`requestStatus`: `MENUNGGU_VERIFIKASI`, `DITERIMA`, `DITOLAK`), sehingga antrean,
+laporan, dan dashboard staf tidak tercemar permintaan yang belum diverifikasi.
+Saat admin **menerima**, service order asli dibuat dengan alur biasa (nomor
+order, antrean hari itu, tracking token) dan `orderId` pada pengajuan terisi.
+Kalau pembuatan order gagal (misalnya mekanik nonaktif), pengajuan kembali ke
+`MENUNGGU_VERIFIKASI`. `serviceDate` pada pengajuan hanyalah **tanggal yang
+diminta**; order selalu masuk antrean hari ia dibuat.
+
+**Registrasi tidak menautkan ke data pelanggan lama.** Pendaftaran selalu membuat
+data pelanggan baru. Kalau nomor telepon sudah terdaftar (misalnya pelanggan
+lama yang dibuat admin), pendaftaran ditolak `PHONE_ALREADY_USED` (409).
+Menautkan berdasarkan nomor telepon akan membuat siapa pun bisa membaca riwayat
+servis orang lain hanya dengan mengetik nomornya.
+
+**DTO order untuk pelanggan** tidak memuat catatan internal, nama mekanik,
+riwayat status (yang berisi catatan staf), maupun data tracking.
+
+Kode error: `EMAIL_ALREADY_USED`, `PHONE_ALREADY_USED`, `ALREADY_REGISTERED` (409),
+`TOO_MANY_REGISTRATIONS` (429), `CUSTOMER_PROFILE_NOT_FOUND`, `VEHICLE_NOT_FOUND`,
+`REQUEST_NOT_FOUND` (404), `TOO_MANY_PENDING_REQUESTS`, `REQUEST_ALREADY_REVIEWED` (409).
+
+---
+
 ## Public tracking (tanpa login)
 
 ```http
@@ -342,7 +386,8 @@ diartikan sebagai hari penuh waktu lokal bengkel.
 | Notifikasi WhatsApp / email | **belum** — provider belum dipilih |
 | Struk PDF (`GET /service-orders/:id/receipt`) | **belum** |
 | `POST /service-orders/:id/resend-tracking` | **belum** — bergantung pada notifikasi |
-| Akun pelanggan (registrasi & dashboard) | **di luar lingkup** — brief hanya meminta tiga peran; pelanggan cukup lewat link tracking |
+| Edit profil pelanggan (`PATCH /customer/me`) | **belum** |
+| Menautkan akun pelanggan ke data pelanggan lama | **belum** — butuh verifikasi kepemilikan nomor (OTP) |
 | Dokumentasi OpenAPI/Swagger | **belum** — dokumen ini sebagai gantinya |
 
 Titik pemasangannya sudah disiapkan: perubahan status ke `SELESAI` adalah satu
@@ -366,5 +411,6 @@ dilakukan di backend, bukan sekadar menyembunyikan menu di frontend.
 | Melihat laporan | Terbatas | Tidak | Ya |
 | Melihat harga modal | Tidak | Tidak | Ya |
 
-Pelanggan **tidak punya akun**. Mereka memantau servisnya lewat link tracking
-yang diberikan saat order dibuat.
+`CUSTOMER` adalah role terpisah untuk pelanggan yang mendaftar sendiri. Ia hanya
+bisa memakai endpoint `/customer/*` (lihat *Portal pelanggan*). Pelanggan tanpa
+akun tetap memantau servisnya lewat link tracking yang diberikan saat order dibuat.

@@ -4,7 +4,11 @@ export const ROLES = Object.freeze({
     ADMIN: "ADMIN",
     MECHANIC: "MECHANIC",
     OWNER: "OWNER",
+    CUSTOMER: "CUSTOMER",
 });
+
+// Role yang bekerja di bengkel. CUSTOMER sengaja tidak termasuk.
+export const STAFF_ROLES = Object.freeze([ROLES.ADMIN, ROLES.MECHANIC, ROLES.OWNER]);
 
 const emptyToUndefined = (value) => {
     return value === null || (typeof value === "string" && value.trim() === "") ? undefined : value;
@@ -39,6 +43,11 @@ const userSchema = new mongoose.Schema(
             required: true,
             enum: Object.values(ROLES),
         },
+        // Hanya terisi untuk akun CUSTOMER: menautkan akun ke data pelanggannya.
+        customerId: {
+            type: mongoose.Schema.Types.ObjectId,
+            ref: "Customer",
+        },
         isActive: {
             type: Boolean,
             default: true,
@@ -57,5 +66,6 @@ const userSchema = new mongoose.Schema(
 userSchema.index({ email: 1 }, { unique: true, sparse: true });
 userSchema.index({ phone: 1 }, { unique: true, sparse: true });
 userSchema.index({ role: 1, isActive: 1 });
+userSchema.index({ customerId: 1 }, { unique: true, sparse: true });
 
 export const User = mongoose.model("User", userSchema);

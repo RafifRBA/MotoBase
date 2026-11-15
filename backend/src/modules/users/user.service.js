@@ -3,13 +3,13 @@ import logger from "../../utils/logger.js";
 import { buildMeta, escapeRegExp, toSkip } from "../../utils/pagination.js";
 import { hashPassword } from "../auth/password.js";
 import { RefreshToken } from "../auth/refresh-token.model.js";
-import { User } from "./user.model.js";
+import { STAFF_ROLES, User } from "./user.model.js";
 
 const notFound = () => new ApiError(404, "USER_NOT_FOUND", "User tidak ditemukan");
 
 const buildFilter = ({ role, isActive, search }) => {
-    const filter = {};
-    if (role) filter.role = role;
+    // Tanpa filter role, tetap hanya staf: akun pelanggan tidak ikut tampil.
+    const filter = { role: role ?? { $in: STAFF_ROLES } };
     if (isActive !== undefined) filter.isActive = isActive === "true";
     if (search) {
         const pattern = new RegExp(escapeRegExp(search), "i");

@@ -3,7 +3,7 @@ import { z } from "zod";
 import { emailSchema, passwordSchema } from "../auth/auth.validation.js";
 import { paginationSchema } from "../../utils/pagination.js";
 import { normalizePhone } from "../../utils/phone.js";
-import { ROLES } from "./user.model.js";
+import { STAFF_ROLES } from "./user.model.js";
 
 export const objectIdSchema = z.string().regex(/^[0-9a-fA-F]{24}$/, "ID tidak valid");
 
@@ -11,8 +11,6 @@ export const phoneSchema = z
     .string()
     .transform((value) => normalizePhone(value))
     .refine((value) => value !== null, "Nomor telepon tidak valid");
-
-const STAFF_ROLES = [ROLES.ADMIN, ROLES.MECHANIC, ROLES.OWNER];
 
 export const listUsersSchema = {
     query: paginationSchema.extend({

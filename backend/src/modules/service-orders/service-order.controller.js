@@ -14,8 +14,7 @@ const idOf = (value) => (value ? value.toString() : null);
 export const canSeeInternalNotes = (user) =>
     [ROLES.ADMIN, ROLES.OWNER, ROLES.MECHANIC].includes(user?.role);
 
-export const canSeeCustomerPhone = (user) =>
-    [ROLES.ADMIN, ROLES.OWNER].includes(user?.role);
+export const canSeeCustomerPhone = (user) => [ROLES.ADMIN, ROLES.OWNER].includes(user?.role);
 
 const getOrderPopulatePaths = (user) => [
     { path: "customerId", select: canSeeCustomerPhone(user) ? "name phone" : "name" },
