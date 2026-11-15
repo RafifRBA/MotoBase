@@ -9,6 +9,7 @@ import { formatDateTime } from "@/lib/format";
 import { ACCESS } from "@/lib/permissions";
 import { useOrder } from "../hooks";
 import { AssignPanel } from "./assign-panel";
+import { CorrectionPanel } from "./correction-panel";
 import { CustomerInline, VehicleInline } from "./ref-display";
 import { OrderInfoForm } from "./order-info-form";
 import { PartsPanel } from "./parts-panel";
@@ -80,6 +81,7 @@ export function OrderDetail({ id }: { id: string }) {
 
         <div className="space-y-6">
           {canEdit && <StatusActions order={o} />}
+          <CorrectionPanel order={o} />
           <AssignPanel order={o} />
           {canTrack && <TrackingPanel order={o} />}
           <Card>

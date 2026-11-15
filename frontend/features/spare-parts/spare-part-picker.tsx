@@ -18,7 +18,7 @@ interface Props {
 export function SparePartPicker({ value, onChange }: Props) {
   const [term, setTerm] = useState("");
   const search = useDebounce(term.trim());
-  const list = useSpareParts({ search, limit: 8 });
+  const list = useSpareParts({ search, limit: 8, isActive: "true" });
 
   return (
     <div className="space-y-2">

@@ -1,4 +1,5 @@
 import { keepPreviousData, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useIdempotencyKey } from "@/lib/hooks";
 import { notifyError, notifySuccess } from "@/lib/notify";
 import type { ListParams } from "@/types/api";
 import { sparePartsApi, type SparePartInput } from "./api";
@@ -46,9 +47,11 @@ export function useSaveSparePart(id?: string) {
 
 export function useStockIn(id: string) {
   const invalidate = useInvalidateStock();
+  const idem = useIdempotencyKey();
   return useMutation({
-    mutationFn: (b: { quantity: number; reason?: string }) => sparePartsApi.stockIn(id, b),
+    mutationFn: (b: { quantity: number; reason?: string }) => sparePartsApi.stockIn(id, b, idem.get()),
     onSuccess: () => {
+      idem.renew();
       invalidate();
       notifySuccess("Stok masuk tercatat");
     },
@@ -58,9 +61,11 @@ export function useStockIn(id: string) {
 
 export function useAdjustStock(id: string) {
   const invalidate = useInvalidateStock();
+  const idem = useIdempotencyKey();
   return useMutation({
-    mutationFn: (b: { quantity: number; reason: string }) => sparePartsApi.adjustStock(id, b),
+    mutationFn: (b: { quantity: number; reason: string }) => sparePartsApi.adjustStock(id, b, idem.get()),
     onSuccess: () => {
+      idem.renew();
       invalidate();
       notifySuccess("Stok disesuaikan");
     },

@@ -1,4 +1,5 @@
 import { keepPreviousData, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useIdempotencyKey } from "@/lib/hooks";
 import { notifyError, notifySuccess } from "@/lib/notify";
 import type { ListParams } from "@/types/api";
 import type { PaymentMethodValue } from "@/lib/constants";
@@ -64,7 +65,7 @@ export function useAssignMechanic(id: string) {
 export function useSetStatus(id: string) {
   const refresh = useRefreshOrder(id);
   return useMutation({
-    mutationFn: (v: { status: ServiceStatus; note?: string }) => ordersApi.setStatus(id, v.status, v.note),
+    mutationFn: (v: { status: ServiceStatus; note?: string; isCorrection?: boolean }) => ordersApi.setStatus(id, v),
     onSuccess: () => {
       refresh();
       notifySuccess("Status servis diperbarui");
@@ -75,9 +76,11 @@ export function useSetStatus(id: string) {
 
 export function useAddPart(id: string) {
   const refresh = useRefreshOrder(id);
+  const idem = useIdempotencyKey();
   return useMutation({
-    mutationFn: (b: { sparePartId: string; quantity: number }) => ordersApi.addPart(id, b),
+    mutationFn: (b: { sparePartId: string; quantity: number }) => ordersApi.addPart(id, b, idem.get()),
     onSuccess: () => {
+      idem.renew();
       refresh();
       notifySuccess("Pemakaian suku cadang dicatat, stok berkurang");
     },

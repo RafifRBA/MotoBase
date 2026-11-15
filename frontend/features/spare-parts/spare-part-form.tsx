@@ -18,6 +18,7 @@ const schema = z.object({
   purchasePrice: optionalIntString("Harga modal"),
   initialStock: optionalIntString("Stok awal"),
   minimumStock: intString("Batas minimum"),
+  isActive: z.boolean(),
 });
 type Values = z.infer<typeof schema>;
 
@@ -45,6 +46,7 @@ export function SparePartForm({ existing, loading, onSubmit, onCancel }: Props) 
       purchasePrice: existing?.purchasePrice != null ? String(existing.purchasePrice) : "",
       initialStock: "0",
       minimumStock: existing ? String(existing.minimumStock) : "3",
+      isActive: existing?.isActive ?? true,
     },
   });
 
@@ -61,6 +63,7 @@ export function SparePartForm({ existing, loading, onSubmit, onCancel }: Props) 
           purchasePrice: blankToUndefined(v.purchasePrice) ? Number(v.purchasePrice) : undefined,
           initialStock: editing ? undefined : Number(v.initialStock || 0),
           minimumStock: Number(v.minimumStock),
+          isActive: editing ? v.isActive : undefined,
         }),
       )}
       className="space-y-4"
@@ -95,6 +98,12 @@ export function SparePartForm({ existing, loading, onSubmit, onCancel }: Props) 
           <Input {...register("unit")} />
         </Field>
       </div>
+      {editing && (
+        <label className="flex items-center gap-2 text-sm text-slate-700">
+          <input type="checkbox" {...register("isActive")} />
+          Aktif (nonaktifkan jika tidak dijual lagi; tidak bisa dipilih di servis)
+        </label>
+      )}
       <div className="flex justify-end gap-2 pt-1">
         {onCancel && <Button variant="secondary" onClick={onCancel}>Batal</Button>}
         <Button type="submit" loading={loading}>{editing ? "Simpan perubahan" : "Daftarkan"}</Button>

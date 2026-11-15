@@ -8,6 +8,7 @@ export interface CreateOrderInput {
   vehicleId: string;
   complaint: string;
   serviceCost?: number;
+  assignedMechanicId?: string;
 }
 
 const base = (id: string) => `/service-orders/${id}`;
@@ -18,8 +19,8 @@ export const ordersApi = {
   create: (b: CreateOrderInput) => apiPost<ServiceOrder>("/service-orders", b),
   update: (id: string, b: { complaint?: string; diagnosis?: string; serviceCost?: number }) => apiPatch<ServiceOrder>(base(id), b),
   assignMechanic: (id: string, mechanicId: string | null) => apiPatch<ServiceOrder>(`${base(id)}/assign-mechanic`, { mechanicId }),
-  setStatus: (id: string, status: ServiceStatus, note?: string) => apiPatch<ServiceOrder>(`${base(id)}/status`, { status, note }),
-  addPart: (id: string, b: { sparePartId: string; quantity: number }) => apiPost<ServiceOrder>(`${base(id)}/parts`, b),
+  setStatus: (id: string, b: { status: ServiceStatus; note?: string; isCorrection?: boolean }) => apiPatch<ServiceOrder>(`${base(id)}/status`, b),
+  addPart: (id: string, b: { sparePartId: string; quantity: number }, key?: string) => apiPost<ServiceOrder>(`${base(id)}/parts`, b, key),
   removePart: (id: string, usageId: string) => apiDelete<ServiceOrder>(`${base(id)}/parts/${usageId}`),
   /** Cek nama field pada backend/docs/API.md jika ditolak (400 VALIDATION_ERROR). */
   pay: (id: string, b: { method: PaymentMethodValue }) => apiPost<ServiceOrder>(`${base(id)}/payment`, b),

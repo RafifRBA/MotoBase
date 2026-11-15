@@ -5,18 +5,15 @@ import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Card, CardBody, CardHeader } from "@/components/ui/card";
 import { Field, Input, Select, Textarea } from "@/components/ui/form";
 import { CustomerPicker } from "@/features/customers/customer-picker";
 import { useUsers } from "@/features/users/hooks";
 import { VehiclePicker } from "@/features/vehicles/vehicle-picker";
-import { describeError } from "@/lib/api";
 import { intString } from "@/lib/forms";
 import { saveTrackingToken } from "@/lib/tracking-cache";
 import type { Customer } from "@/types/models";
-import { ordersApi } from "../api";
 import { useCreateOrder } from "../hooks";
 
 const schema = z.object({
@@ -50,15 +47,14 @@ export function OrderCreateForm() {
     setPickError(null);
     setSaving(true);
     try {
-      const order = await create.mutateAsync({ customerId: customer.id, vehicleId, complaint: v.complaint, serviceCost: Number(v.serviceCost) });
+      const order = await create.mutateAsync({
+        customerId: customer.id,
+        vehicleId,
+        complaint: v.complaint,
+        serviceCost: Number(v.serviceCost),
+        assignedMechanicId: v.mechanicId || undefined,
+      });
       if (order.trackingToken) saveTrackingToken(order.id, order.trackingToken);
-      if (v.mechanicId) {
-        try {
-          await ordersApi.assignMechanic(order.id, v.mechanicId);
-        } catch (e) {
-          toast.error(`Servis tersimpan, tetapi mekanik belum ditugaskan: ${describeError(e)}`);
-        }
-      }
       router.push(`/service-orders/${order.id}`);
     } catch {
       // Pesan galat sudah ditampilkan oleh mutation.

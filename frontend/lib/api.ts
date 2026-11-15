@@ -132,8 +132,10 @@ export async function apiGet<T>(url: string, params?: Record<string, unknown>): 
   const res = await api.get<ApiSuccess<T>>(url, { params: mapParams(params) });
   return res.data.data;
 }
-export async function apiPost<T>(url: string, body?: unknown): Promise<T> {
-  const res = await api.post<ApiSuccess<T>>(url, body);
+/** `idempotencyKey`: kunci yang sama untuk request yang sama mencegah data tercatat dua kali. */
+export async function apiPost<T>(url: string, body?: unknown, idempotencyKey?: string): Promise<T> {
+  const headers = idempotencyKey ? { "Idempotency-Key": idempotencyKey } : undefined;
+  const res = await api.post<ApiSuccess<T>>(url, body, { headers });
   return res.data.data;
 }
 export async function apiPatch<T>(url: string, body?: unknown): Promise<T> {
