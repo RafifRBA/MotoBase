@@ -6,9 +6,6 @@ import { sparePartsApi, type SparePartInput } from "./api";
 export const useSpareParts = (params: ListParams, enabled = true) =>
   useQuery({ queryKey: ["spare-parts", "list", params], queryFn: () => sparePartsApi.list(params), placeholderData: keepPreviousData, enabled });
 
-export const useLowStock = (params: ListParams = { limit: 20 }, enabled = true) =>
-  useQuery({ queryKey: ["spare-parts", "low-stock", params], queryFn: () => sparePartsApi.lowStock(params), placeholderData: keepPreviousData, enabled });
-
 export const useSparePart = (id: string) =>
   useQuery({ queryKey: ["spare-parts", "detail", id], queryFn: () => sparePartsApi.get(id), enabled: !!id });
 
@@ -62,7 +59,7 @@ export function useStockIn(id: string) {
 export function useAdjustStock(id: string) {
   const invalidate = useInvalidateStock();
   return useMutation({
-    mutationFn: (b: { newStock: number; note?: string }) => sparePartsApi.adjustStock(id, b),
+    mutationFn: (b: { quantity: number; reason: string }) => sparePartsApi.adjustStock(id, b),
     onSuccess: () => {
       invalidate();
       notifySuccess("Stok disesuaikan");

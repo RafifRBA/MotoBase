@@ -8,7 +8,7 @@ import { useCan } from "@/components/role-gate";
 import { useAuth } from "@/features/auth/auth-provider";
 import { useOrders } from "@/features/service-orders/hooks";
 import { useReport } from "@/features/reports/hooks";
-import { useLowStock } from "@/features/spare-parts/hooks";
+import { useSpareParts } from "@/features/spare-parts/hooks";
 import { ROLE_LABEL, STATUS_LABEL } from "@/lib/constants";
 import { formatRupiah } from "@/lib/format";
 import { ACCESS } from "@/lib/permissions";
@@ -47,7 +47,7 @@ function StatusColumn({ status }: { status: ServiceStatus }) {
 }
 
 function LowStockCard() {
-  const q = useLowStock({ limit: 5 });
+  const q = useSpareParts({ limit: 5, lowStock: "true" });
   const items = q.data?.items ?? [];
   return (
     <Card>

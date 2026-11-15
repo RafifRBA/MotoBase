@@ -5,6 +5,8 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { Button } from "@/components/ui/button";
 import { Field, Input, Textarea } from "@/components/ui/form";
+import { useCan } from "@/components/role-gate";
+import { formatRupiah } from "@/lib/format";
 import { intString } from "@/lib/forms";
 import type { ServiceOrder } from "@/types/models";
 import { useUpdateOrder } from "../hooks";
@@ -18,6 +20,9 @@ type Values = z.infer<typeof schema>;
 
 export function OrderInfoForm({ order }: { order: ServiceOrder }) {
   const update = useUpdateOrder(order.id);
+  // Backend menolak (403) mekanik yang mengirim serviceCost, jadi hanya ADMIN
+  // yang boleh mengubah dan mengirimnya.
+  const canEditCost = useCan(["ADMIN"]);
   const {
     register,
     handleSubmit,
@@ -33,7 +38,11 @@ export function OrderInfoForm({ order }: { order: ServiceOrder }) {
       noValidate
       onSubmit={handleSubmit((v) =>
         update.mutate(
-          { complaint: v.complaint, diagnosis: v.diagnosis || undefined, serviceCost: Number(v.serviceCost) },
+          {
+            complaint: v.complaint,
+            diagnosis: v.diagnosis || undefined,
+            ...(canEditCost && { serviceCost: Number(v.serviceCost) }),
+          },
           { onSuccess: () => reset(v) },
         ),
       )}
@@ -45,9 +54,15 @@ export function OrderInfoForm({ order }: { order: ServiceOrder }) {
       <Field label="Diagnosis mekanik" error={errors.diagnosis?.message}>
         <Textarea placeholder="Hasil pemeriksaan dan tindakan" {...register("diagnosis")} />
       </Field>
-      <Field label="Biaya jasa (Rp)" error={errors.serviceCost?.message} hint="Total dihitung ulang oleh server setiap biaya berubah.">
-        <Input inputMode="numeric" className="max-w-xs" {...register("serviceCost")} />
-      </Field>
+      {canEditCost ? (
+        <Field label="Biaya jasa (Rp)" error={errors.serviceCost?.message} hint="Total dihitung ulang oleh server setiap biaya berubah.">
+          <Input inputMode="numeric" className="max-w-xs" {...register("serviceCost")} />
+        </Field>
+      ) : (
+        <Field label="Biaya jasa" hint="Hanya admin yang dapat mengubah biaya jasa.">
+          <p className="text-sm text-slate-900">{formatRupiah(order.serviceCost)}</p>
+        </Field>
+      )}
       <Button type="submit" disabled={!isDirty} loading={update.isPending}>Simpan perubahan</Button>
     </form>
   );

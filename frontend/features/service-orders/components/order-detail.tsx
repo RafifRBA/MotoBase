@@ -79,7 +79,7 @@ export function OrderDetail({ id }: { id: string }) {
         </div>
 
         <div className="space-y-6">
-          <StatusActions order={o} />
+          {canEdit && <StatusActions order={o} />}
           <AssignPanel order={o} />
           {canTrack && <TrackingPanel order={o} />}
           <Card>

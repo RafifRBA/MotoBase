@@ -1,6 +1,6 @@
 "use client";
 
-import { useForm } from "react-hook-form";
+import { useForm, useWatch } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { Button } from "@/components/ui/button";
@@ -34,12 +34,26 @@ export function StockInForm({ loading, onSubmit, onCancel }: { loading?: boolean
   );
 }
 
-export function AdjustStockForm({ current, loading, onSubmit, onCancel }: { current: number; loading?: boolean; onSubmit: (v: { newStock: number; note?: string }) => void | Promise<void>; onCancel: () => void }) {
-  const { register, handleSubmit, formState: { errors } } = useForm<z.infer<typeof adjustSchema>>({ resolver: zodResolver(adjustSchema), defaultValues: { newStock: String(current), note: "" } });
+export function AdjustStockForm({ current, loading, onSubmit, onCancel }: { current: number; loading?: boolean; onSubmit: (v: { quantity: number; reason: string }) => void | Promise<void>; onCancel: () => void }) {
+  const { register, handleSubmit, control, setError, formState: { errors } } = useForm<z.infer<typeof adjustSchema>>({ resolver: zodResolver(adjustSchema), defaultValues: { newStock: String(current), note: "" } });
+  // Backend menerima selisih bertanda, bukan stok akhir: hitung dari hasil opname.
+  const typed = useWatch({ control, name: "newStock" });
+  const preview = /^\d+$/.test(typed ?? "") ? Number(typed) - current : null;
   return (
-    <form noValidate onSubmit={handleSubmit((v) => onSubmit({ newStock: Number(v.newStock), note: v.note }))} className="space-y-4">
+    <form
+      noValidate
+      onSubmit={handleSubmit((v) => {
+        const delta = Number(v.newStock) - current;
+        if (delta === 0) {
+          setError("newStock", { message: "Sama dengan stok tercatat, tidak ada yang perlu disesuaikan" });
+          return;
+        }
+        return onSubmit({ quantity: delta, reason: v.note });
+      })}
+      className="space-y-4"
+    >
       <p className="text-sm text-slate-600">Stok tercatat saat ini: <span className="font-semibold text-slate-900">{current}</span>. Isi dengan jumlah hasil hitung fisik (opname).</p>
-      <Field label="Stok sebenarnya" error={errors.newStock?.message}>
+      <Field label="Stok sebenarnya" error={errors.newStock?.message} hint={preview !== null && preview !== 0 ? `Selisih ${preview > 0 ? "+" : ""}${preview}, stok jadi ${current + preview}.` : undefined}>
         <Input inputMode="numeric" autoFocus {...register("newStock")} />
       </Field>
       <Field label="Alasan" error={errors.note?.message}>

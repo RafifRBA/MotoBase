@@ -67,7 +67,10 @@ export interface StockMovement {
   id: string;
   sparePartId: Ref<{ name?: string; sku?: string }>;
   type: string;
+  /** Selalu positif. Untuk tampilan bertanda pakai `delta`. */
   quantity: number;
+  /** Selisih bertanda (stockAfter - stockBefore). */
+  delta?: number;
   stockBefore?: number;
   stockAfter?: number;
   note?: string | null;

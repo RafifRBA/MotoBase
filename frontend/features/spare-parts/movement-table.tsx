@@ -29,7 +29,7 @@ export function MovementTable({ rows, loading, showPart = true }: { rows: StockM
           ? [{ header: "Suku cadang", cell: (m: StockMovement) => (isPopulated(m.sparePartId) ? `${m.sparePartId.name ?? ""} ${m.sparePartId.sku ? `(${m.sparePartId.sku})` : ""}` : "-") }]
           : []),
         { header: "Jenis", cell: (m) => { const t = TYPE[m.type] ?? { label: m.type, tone: "gray" as Tone }; return <Badge tone={t.tone}>{t.label}</Badge>; } },
-        { header: "Jumlah", className: "text-right", cell: (m) => <span className="font-medium">{m.quantity > 0 ? `+${m.quantity}` : m.quantity}</span> },
+        { header: "Jumlah", className: "text-right", cell: (m) => { const d = m.delta ?? m.quantity; return <span className="font-medium">{d > 0 ? `+${d}` : d}</span>; } },
         { header: "Stok akhir", className: "text-right", cell: (m) => m.stockAfter ?? "-" },
         { header: "Oleh", cell: (m) => (isPopulated(m.createdBy) ? m.createdBy.name ?? "-" : "-") },
         { header: "Catatan", cell: (m) => m.note ?? "-" },

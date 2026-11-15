@@ -1,7 +1,9 @@
 import { Card, CardBody, CardHeader, StatCard } from "@/components/ui/card";
 import { formatDateTime, formatNumber, formatRupiah, humanizeKey, isIsoDate } from "@/lib/format";
 
-const MONEY_KEY = /(pendapatan|revenue|harga|biaya|price|cost|amount|subtotal|^total$|grandtotal)/i;
+const MONEY_KEY = /(pendapatan|revenue|harga|biaya|price|cost|amount|subtotal|^total$|grandtotal|modal|margin|nilai)/i;
+// Kolom id mentah (sparePartId, mechanicId, dst.) tidak berguna bagi pembaca laporan.
+const HIDDEN_KEY = /^(_?id|__v)$|.Id$/;
 const isObj = (v: unknown): v is Record<string, unknown> => !!v && typeof v === "object" && !Array.isArray(v);
 
 export function formatValue(key: string, value: unknown): string {
@@ -16,7 +18,7 @@ export function formatValue(key: string, value: unknown): string {
 function ArrayTable({ rows }: { rows: unknown[] }) {
   if (rows.length === 0) return <p className="text-sm text-slate-500">Tidak ada data pada periode ini.</p>;
   if (!isObj(rows[0])) return <ul className="list-disc pl-5 text-sm">{rows.map((r, i) => <li key={i}>{formatValue("", r)}</li>)}</ul>;
-  const keys = Array.from(new Set(rows.slice(0, 20).flatMap((r) => (isObj(r) ? Object.keys(r) : [])))).filter((k) => !/^(_?id|__v)$/i.test(k));
+  const keys = Array.from(new Set(rows.slice(0, 20).flatMap((r) => (isObj(r) ? Object.keys(r) : [])))).filter((k) => !HIDDEN_KEY.test(k));
   return (
     <div className="overflow-x-auto">
       <table className="w-full text-left text-sm">

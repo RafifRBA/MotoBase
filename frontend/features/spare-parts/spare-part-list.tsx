@@ -17,7 +17,7 @@ import { formatRupiah } from "@/lib/format";
 import { ACCESS } from "@/lib/permissions";
 import { cn } from "@/lib/utils";
 import type { SparePart } from "@/types/models";
-import { useLowStock, useSaveSparePart, useSpareParts } from "./hooks";
+import { useSaveSparePart, useSpareParts } from "./hooks";
 import { SparePartForm } from "./spare-part-form";
 import { StockBadge } from "./stock-badge";
 
@@ -31,9 +31,9 @@ export function SparePartList() {
   const [onlyLow, setOnlyLow] = useState(false);
   const [creating, setCreating] = useState(false);
   const search = useDebounce(term.trim());
-  const all = useSpareParts({ page, limit: 15, search }, !onlyLow);
-  const low = useLowStock({ page, limit: 15, search }, onlyLow);
-  const q = onlyLow ? low : all;
+  // /spare-parts/low-stock mengabaikan page, limit, dan search. Endpoint daftar
+  // biasa mendukung ketiganya lewat filter lowStock.
+  const q = useSpareParts({ page, limit: 15, search, lowStock: onlyLow ? "true" : undefined });
   const save = useSaveSparePart();
   const showCost = user?.role === "OWNER";
 
