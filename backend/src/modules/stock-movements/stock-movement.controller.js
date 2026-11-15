@@ -1,17 +1,20 @@
 import { buildMeta, toSkip } from "../../utils/pagination.js";
+import { formatRef } from "../../utils/ref.js";
 import { StockMovement } from "./stock-movement.model.js";
 
 export const toStockMovementResponse = (movement) => ({
     id: movement.id,
-    sparePartId: movement.sparePartId.toString(),
+    sparePartId: formatRef(movement.sparePartId, ["name", "sku"]),
     serviceOrderId: movement.serviceOrderId ? movement.serviceOrderId.toString() : null,
     type: movement.type,
     quantity: movement.quantity,
     stockBefore: movement.stockBefore,
     stockAfter: movement.stockAfter,
+    delta: movement.stockAfter - movement.stockBefore,
     reason: movement.reason,
+    note: movement.reason,
     referenceId: movement.referenceId ?? null,
-    createdBy: movement.createdBy.toString(),
+    createdBy: formatRef(movement.createdBy, ["name"]),
     createdAt: movement.createdAt,
 });
 
@@ -28,7 +31,12 @@ export const listMovements = async (query) => {
     }
 
     const [movements, total] = await Promise.all([
-        StockMovement.find(filter).sort({ createdAt: -1 }).skip(toSkip(query)).limit(query.limit),
+        StockMovement.find(filter)
+            .sort({ createdAt: -1 })
+            .skip(toSkip(query))
+            .limit(query.limit)
+            .populate("sparePartId", "name sku")
+            .populate("createdBy", "name"),
         StockMovement.countDocuments(filter),
     ]);
 

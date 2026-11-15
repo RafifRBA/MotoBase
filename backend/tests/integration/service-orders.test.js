@@ -130,7 +130,7 @@ describe("Alur status", () => {
             to: "DIPERIKSA",
             note: "Mulai pemeriksaan",
         });
-        expect(terakhir.changedBy).toBe(admin.user.id);
+        expect(terakhir.changedBy.id).toBe(admin.user.id);
         expect(terakhir.changedAt).toBeTruthy();
     });
 
@@ -455,5 +455,80 @@ describe("Daftar dan riwayat", () => {
         expect(res.status).toBe(200);
         expect(res.body.data.grandTotal).toBe(50000);
         expect(res.body.data.currentStatus).toBe("ANTRE");
+    });
+});
+
+describe("Relasi pada respons order", () => {
+    it("customer, kendaraan, mekanik, dan pelaku status berisi objek ringkas", async () => {
+        const { admin, mechanic, customer, vehicle } = await seedWorkshop();
+        const order = await createOrder(admin, {
+            customer,
+            vehicle,
+            assignedMechanicId: mechanic.user.id,
+        });
+        await admin
+            .patch(`/api/v1/service-orders/${order.id}/status`)
+            .send({ status: "DIPERIKSA" });
+
+        const res = await admin.get(`/api/v1/service-orders/${order.id}`);
+        const data = res.body.data;
+
+        expect(res.status).toBe(200);
+        expect(data.customerId).toEqual({
+            id: customer.id,
+            name: "Rafif Raihan",
+            phone: customer.phone,
+        });
+        expect(data.vehicleId).toEqual({
+            id: vehicle.id,
+            licensePlate: vehicle.licensePlate,
+            brand: "Honda",
+            model: "Vario",
+        });
+        expect(data.assignedMechanicId).toEqual({
+            id: mechanic.user.id,
+            name: mechanic.user.name,
+        });
+        expect(data.statusHistory.at(-1).changedBy).toEqual({
+            id: admin.user.id,
+            name: admin.user.name,
+        });
+    });
+
+    it("daftar order juga ter-populate", async () => {
+        const { admin, customer, vehicle } = await seedWorkshop();
+        await createOrder(admin, { customer, vehicle });
+
+        const res = await admin.get("/api/v1/service-orders");
+
+        expect(res.body.data[0].customerId.name).toBe("Rafif Raihan");
+        expect(res.body.data[0].vehicleId.licensePlate).toBe(vehicle.licensePlate);
+    });
+
+    it("mekanik tidak melihat nomor telepon pelanggan", async () => {
+        const { admin, mechanic, customer, vehicle } = await seedWorkshop();
+        const order = await createOrder(admin, { customer, vehicle });
+
+        const res = await mechanic.get(`/api/v1/service-orders/${order.id}`);
+
+        expect(res.status).toBe(200);
+        expect(res.body.data.customerId.name).toBe("Rafif Raihan");
+        expect(res.body.data.customerId.phone).toBeUndefined();
+        expect(JSON.stringify(res.body)).not.toContain(customer.phone);
+    });
+
+    it("tidak ada passwordHash atau purchasePrice di respons", async () => {
+        const { admin, mechanic, customer, vehicle } = await seedWorkshop();
+        const order = await createOrder(admin, {
+            customer,
+            vehicle,
+            assignedMechanicId: mechanic.user.id,
+        });
+
+        const res = await admin.get(`/api/v1/service-orders/${order.id}`);
+        const raw = JSON.stringify(res.body);
+
+        expect(raw).not.toContain("passwordHash");
+        expect(raw).not.toContain("purchasePrice");
     });
 });

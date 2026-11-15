@@ -1,5 +1,7 @@
 import { ROLES } from "../users/user.model.js";
+import { ServiceOrder } from "./service-order.model.js";
 import { maskLicensePlate, maskName, publicFirstName } from "../../utils/mask.js";
+import { formatRef } from "../../utils/ref.js";
 import * as orderService from "./service-order.service.js";
 
 const idempotencyKeyOf = (req) => {
@@ -8,6 +10,19 @@ const idempotencyKeyOf = (req) => {
 };
 
 const idOf = (value) => (value ? value.toString() : null);
+
+export const canSeeInternalNotes = (user) =>
+    [ROLES.ADMIN, ROLES.OWNER, ROLES.MECHANIC].includes(user?.role);
+
+export const canSeeCustomerPhone = (user) =>
+    [ROLES.ADMIN, ROLES.OWNER].includes(user?.role);
+
+const getOrderPopulatePaths = (user) => [
+    { path: "customerId", select: canSeeCustomerPhone(user) ? "name phone" : "name" },
+    { path: "vehicleId", select: "licensePlate brand model" },
+    { path: "assignedMechanicId", select: "name" },
+    { path: "statusHistory.changedBy", select: "name" },
+];
 
 const toUsedPartResponse = (part) => ({
     id: part.id ?? part._id.toString(),
@@ -23,7 +38,7 @@ const toUsedPartResponse = (part) => ({
 const toStatusHistoryResponse = (entry) => ({
     from: entry.from ?? null,
     to: entry.to,
-    changedBy: idOf(entry.changedBy),
+    changedBy: formatRef(entry.changedBy, ["name"]),
     changedAt: entry.changedAt,
     note: entry.note ?? null,
     isCorrection: entry.isCorrection,
@@ -31,15 +46,20 @@ const toStatusHistoryResponse = (entry) => ({
 
 // DTO internal untuk staf. Catatan internal hanya untuk role internal, tidak
 // pernah ikut ke DTO pelanggan atau publik.
-export const toServiceOrderResponse = (order, { includeInternalNotes = true } = {}) => {
+export const toServiceOrderResponse = (
+    order,
+    { includeInternalNotes = true, includeCustomerPhone = false } = {},
+) => {
+    const customerFields = includeCustomerPhone ? ["name", "phone"] : ["name"];
+
     const response = {
         id: order.id,
         orderNumber: order.orderNumber,
         queueNumber: order.queueNumber,
         serviceDate: order.serviceDate,
-        customerId: idOf(order.customerId),
-        vehicleId: idOf(order.vehicleId),
-        assignedMechanicId: idOf(order.assignedMechanicId),
+        customerId: formatRef(order.customerId, customerFields),
+        vehicleId: formatRef(order.vehicleId, ["licensePlate", "brand", "model"]),
+        assignedMechanicId: formatRef(order.assignedMechanicId, ["name"]),
         complaint: order.complaint,
         diagnosis: order.diagnosis ?? null,
         currentStatus: order.currentStatus,
@@ -67,9 +87,6 @@ export const toServiceOrderResponse = (order, { includeInternalNotes = true } = 
 
     return response;
 };
-
-export const canSeeInternalNotes = (user) =>
-    [ROLES.ADMIN, ROLES.OWNER, ROLES.MECHANIC].includes(user?.role);
 
 // DTO publik untuk halaman tracking tanpa login.
 //
@@ -118,22 +135,38 @@ export const toPublicTrackingResponse = ({ order, customer, vehicle, mechanic })
     isReadyForPickup: order.currentStatus === "SELESAI",
 });
 
-const present = (req, order) =>
-    toServiceOrderResponse(order, { includeInternalNotes: canSeeInternalNotes(req.user) });
+const format = (req, order) =>
+    toServiceOrderResponse(order, {
+        includeInternalNotes: canSeeInternalNotes(req.user),
+        includeCustomerPhone: canSeeCustomerPhone(req.user),
+    });
+
+// Satu order: populate lalu format.
+const present = async (req, order) => {
+    await ServiceOrder.populate(order, getOrderPopulatePaths(req.user));
+    return format(req, order);
+};
+
+// Banyak order: populate SEKALI untuk seluruh daftar (bukan per order), lalu format.
+const presentMany = async (req, orders) => {
+    await ServiceOrder.populate(orders, getOrderPopulatePaths(req.user));
+    return orders.map((order) => format(req, order));
+};
 
 export const list = async (req, res) => {
     const { orders, meta } = await orderService.listOrders(req.validated.query, req.user);
+    const data = await presentMany(req, orders);
 
     return res.status(200).json({
         success: true,
-        data: orders.map((order) => present(req, order)),
+        data,
         meta,
     });
 };
 
 export const getById = async (req, res) => {
     const order = await orderService.getOrderById(req.validated.params.id);
-    return res.status(200).json({ success: true, data: present(req, order) });
+    return res.status(200).json({ success: true, data: await present(req, order) });
 };
 
 export const create = async (req, res) => {
@@ -143,7 +176,7 @@ export const create = async (req, res) => {
         success: true,
         message: "Service order berhasil dibuat",
         data: {
-            ...present(req, order),
+            ...(await present(req, order)),
             // Hanya muncul sekali, saat order dibuat. Kirimkan ke pelanggan
             // lewat WhatsApp atau cetak sebagai QR code.
             trackingToken,
@@ -161,7 +194,7 @@ export const update = async (req, res) => {
     return res.status(200).json({
         success: true,
         message: "Service order berhasil diperbarui",
-        data: present(req, order),
+        data: await present(req, order),
     });
 };
 
@@ -175,7 +208,7 @@ export const assignMechanic = async (req, res) => {
     return res.status(200).json({
         success: true,
         message: req.validated.body.mechanicId ? "Mekanik ditugaskan" : "Penugasan mekanik dilepas",
-        data: present(req, order),
+        data: await present(req, order),
     });
 };
 
@@ -189,7 +222,7 @@ export const updateStatus = async (req, res) => {
     return res.status(200).json({
         success: true,
         message: `Status diubah menjadi ${order.currentStatus}`,
-        data: present(req, order),
+        data: await present(req, order),
     });
 };
 
@@ -204,7 +237,7 @@ export const addPart = async (req, res) => {
     return res.status(201).json({
         success: true,
         message: "Pemakaian suku cadang dicatat",
-        data: present(req, order),
+        data: await present(req, order),
         // Peringatan stok menipis.
         meta: { isLowStock: Boolean(isLowStock) },
     });
@@ -221,7 +254,7 @@ export const removePart = async (req, res) => {
     return res.status(200).json({
         success: true,
         message: "Pemakaian suku cadang dibatalkan dan stok dikembalikan",
-        data: present(req, order),
+        data: await present(req, order),
     });
 };
 
@@ -235,16 +268,17 @@ export const pay = async (req, res) => {
     return res.status(200).json({
         success: true,
         message: "Pembayaran berhasil dicatat",
-        data: present(req, order),
+        data: await present(req, order),
     });
 };
 
 export const listByVehicle = async (req, res) => {
     const orders = await orderService.listOrdersByVehicle(req.validated.params.id);
+    const data = await presentMany(req, orders);
 
     return res.status(200).json({
         success: true,
-        data: orders.map((order) => present(req, order)),
+        data,
     });
 };
 
@@ -253,10 +287,11 @@ export const listByCustomer = async (req, res) => {
         req.validated.params.id,
         req.validated.query,
     );
+    const data = await presentMany(req, orders);
 
     return res.status(200).json({
         success: true,
-        data: orders.map((order) => present(req, order)),
+        data,
         meta,
     });
 };
@@ -281,7 +316,7 @@ export const rotateTracking = async (req, res) => {
         success: true,
         message: "Link tracking baru berhasil dibuat. Link lama sudah tidak berlaku.",
         data: {
-            ...present(req, order),
+            ...(await present(req, order)),
             trackingToken,
         },
     });
@@ -293,6 +328,6 @@ export const revokeTracking = async (req, res) => {
     return res.status(200).json({
         success: true,
         message: "Link tracking dicabut",
-        data: present(req, order),
+        data: await present(req, order),
     });
 };

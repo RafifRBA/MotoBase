@@ -29,7 +29,7 @@ export const createSparePartSchema = {
         name: z.string().trim().min(1).max(150),
         category: z.string().trim().max(50).optional(),
         sellingPrice: rupiahSchema,
-        purchasePrice: rupiahSchema,
+        purchasePrice: rupiahSchema.default(0),
         // Stok awal opsional; kalau diisi, dicatat sebagai movement bertipe IN.
         initialStock: z.coerce.number().int().min(0).max(100_000).default(0),
         minimumStock: z.coerce.number().int().min(0).max(100_000).optional(),

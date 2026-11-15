@@ -148,6 +148,31 @@ Kode error: `USER_NOT_FOUND` (404), `EMAIL_ALREADY_USED` / `PHONE_ALREADY_USED`
 
 ---
 
+## Bentuk relasi pada respons
+
+Field relasi dikirim sebagai **objek ringkas**, bukan id mentah, supaya
+frontend bisa menampilkan nama tanpa request tambahan. Bentuknya allowlist,
+field lain tidak pernah ikut.
+
+| Field | Bentuk |
+|---|---|
+| `customerId` (order) | `{ id, name, phone? }` — `phone` hanya untuk ADMIN dan OWNER |
+| `vehicleId` (order) | `{ id, licensePlate, brand, model }` |
+| `assignedMechanicId`, `statusHistory[].changedBy` | `{ id, name }` |
+| `customerId` (kendaraan) | `{ id, name }` |
+| `sparePartId` (movement) | `{ id, name, sku }` |
+| `createdBy` (movement) | `{ id, name }` |
+
+Nilai kosong (belum ada mekanik, dokumen sudah dihapus) menjadi `null`.
+Pengecualian: respons `stock-in` dan `adjust-stock` mengembalikan
+`movement.sparePartId` dan `movement.createdBy` sebagai id string. Frontend
+sebaiknya menerima kedua bentuk.
+
+Setiap movement juga memuat `delta` (selisih bertanda, `stockAfter - stockBefore`)
+dan `note` (salinan `reason`). `quantity` tetap positif.
+
+---
+
 ## Customers
 
 `GET` untuk **ADMIN** dan **OWNER**, `POST`/`PATCH` hanya **ADMIN**. Mekanik
@@ -253,14 +278,17 @@ dan katalog: **ADMIN**. Riwayat pergerakan: **ADMIN** dan **OWNER**.
 |---|---|
 | `GET /spare-parts?page&limit&search&category&isActive&lowStock` | `isLowStock` ikut di tiap item |
 | `GET /spare-parts/low-stock` | daftar yang perlu dipesan ulang |
-| `POST /spare-parts` | `{ sku, name, sellingPrice, purchasePrice, initialStock?, minimumStock?, unit?, category? }` |
+| `POST /spare-parts` | `{ sku, name, sellingPrice, purchasePrice?, initialStock?, minimumStock?, unit?, category? }` |
 | `GET /spare-parts/:id`, `PATCH /spare-parts/:id` | `currentStock` **tidak bisa** diubah di sini |
 | `POST /spare-parts/:id/stock-in` | `{ quantity, reason?, referenceId? }` |
 | `POST /spare-parts/:id/adjust-stock` | `{ quantity, reason }` — `quantity` bertanda, `reason` wajib |
 | `GET /spare-parts/:id/movements`, `GET /stock-movements` | riwayat, append-only |
 
-**`purchasePrice` hanya dikirim untuk OWNER.** Admin dan mekanik hanya melihat
-harga jual.
+**`purchasePrice` hanya dikirim untuk OWNER**, dan bersifat **opsional** saat
+membuat suku cadang baru (default `0` jika tidak dikirim oleh ADMIN/kasir).
+OWNER dapat melengkapinya belakangan lewat `PATCH /spare-parts/:id` — selama
+belum diisi (`0`), laporan `modal` dan `margin` akan tidak akurat. Admin dan
+mekanik hanya melihat harga jual.
 
 **Idempotency:** `stock-in`, `adjust-stock`, dan `POST /service-orders/:id/parts`
 menerima header `Idempotency-Key`. Retry dengan kunci yang sama mengembalikan
@@ -300,6 +328,10 @@ diartikan sebagai hari penuh waktu lokal bengkel.
 | `GET /reports/parts-usage` | OWNER, ADMIN | suku cadang terlaris; `modal` dan `margin` hanya untuk OWNER |
 | `GET /reports/low-stock` | OWNER, ADMIN | kekurangan terhadap batas minimum |
 | `GET /reports/mechanic-performance` | OWNER | jumlah selesai, dibatalkan, nilai servis, rata-rata durasi |
+
+> Selama `purchasePrice` suatu suku cadang masih bernilai default `0` (belum
+> diisi oleh OWNER lewat `PATCH /spare-parts/:id`), perhitungan `modal` dan
+> `margin` pada `/reports/parts-usage` akan salah (margin tampak 100%).
 
 ---
 

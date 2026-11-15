@@ -366,3 +366,56 @@ describe("Riwayat pergerakan stok", () => {
         expect(res.status).toBe(403);
     });
 });
+
+describe("Relasi pada riwayat stok", () => {
+    it("suku cadang dan pelaku berisi objek ringkas, tanpa data sensitif", async () => {
+        const admin = await asRole(ROLES.ADMIN);
+        const part = await buatPart(admin);
+        await admin.post(`/api/v1/spare-parts/${part.id}/stock-in`).send({
+            quantity: 5,
+            reason: "Beli dari supplier",
+        });
+        await admin
+            .post(`/api/v1/spare-parts/${part.id}/adjust-stock`)
+            .send({ quantity: -2, reason: "Rusak" });
+
+        const res = await admin.get("/api/v1/stock-movements");
+        const [adjust, masuk] = res.body.data;
+
+        expect(res.status).toBe(200);
+        expect(masuk.sparePartId).toEqual({ id: part.id, name: part.name, sku: part.sku });
+        expect(masuk.createdBy).toEqual({ id: admin.user.id, name: admin.user.name });
+        expect(masuk.note).toBe("Beli dari supplier");
+        expect(masuk.delta).toBe(5);
+        expect(adjust.delta).toBe(-2);
+
+        const raw = JSON.stringify(res.body);
+        expect(raw).not.toContain("passwordHash");
+        expect(raw).not.toContain("purchasePrice");
+    });
+
+    it("riwayat per suku cadang juga ter-populate", async () => {
+        const admin = await asRole(ROLES.ADMIN);
+        const part = await buatPart(admin);
+
+        const res = await admin.get(`/api/v1/spare-parts/${part.id}/movements`);
+
+        expect(res.body.data[0].sparePartId.name).toBe(part.name);
+        expect(res.body.data[0].createdBy.name).toBe(admin.user.name);
+    });
+});
+
+describe("purchasePrice opsional saat membuat", () => {
+    it("admin boleh membuat tanpa purchasePrice, owner melihat 0", async () => {
+        const admin = await asRole(ROLES.ADMIN);
+        const create = await admin
+            .post("/api/v1/spare-parts")
+            .send({ sku: "TANPA-MODAL", name: "Kampas Rem", sellingPrice: 30000 });
+        const owner = await asRole(ROLES.OWNER);
+
+        const res = await owner.get(`/api/v1/spare-parts/${create.body.data.id}`);
+
+        expect(create.status).toBe(201);
+        expect(res.body.data.purchasePrice).toBe(0);
+    });
+});

@@ -92,7 +92,7 @@ describe("GET /api/v1/vehicles", () => {
         const res = await admin.get(`/api/v1/vehicles?customerId=${customerA}`);
 
         expect(res.body.data).toHaveLength(1);
-        expect(res.body.data[0].customerId).toBe(customerA);
+        expect(res.body.data[0].customerId.id).toBe(customerA);
     });
 
     it("pencarian plat mengabaikan spasi dan huruf besar-kecil", async () => {
@@ -143,7 +143,7 @@ describe("PATCH /api/v1/vehicles/:id", () => {
             .send({ customerId: baru });
 
         expect(res.status).toBe(200);
-        expect(res.body.data.customerId).toBe(baru);
+        expect(res.body.data.customerId.id).toBe(baru);
     });
 
     it("mengubah plat menjadi plat milik kendaraan lain ditolak", async () => {
