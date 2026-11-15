@@ -125,7 +125,6 @@ export interface ServiceOrder {
   cancelledAt: string | null;
   trackingActive: boolean;
   trackingToken?: string;
-  requestStatus?: "MENUNGGU_VERIFIKASI" | "DITERIMA" | "DITOLAK";
 }
 
 export interface CustomerProfile extends Customer {
