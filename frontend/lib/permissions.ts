@@ -19,6 +19,7 @@ export const ACCESS = {
   orderTracking: ["ADMIN"],
   stockRead: ["ADMIN", "OWNER"],
   stockWrite: ["ADMIN"],
+  partEdit: ["ADMIN", "OWNER"],
   reports: ["OWNER", "ADMIN"],
   reportsOwnerOnly: ["OWNER"],
 } satisfies Record<string, Role[]>;

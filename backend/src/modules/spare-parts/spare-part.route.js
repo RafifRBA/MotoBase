@@ -24,6 +24,10 @@ router.use(authenticate);
 const canRead = authorize(ROLES.ADMIN, ROLES.OWNER, ROLES.MECHANIC);
 const canWrite = authorize(ROLES.ADMIN);
 const canReadInternal = authorize(ROLES.ADMIN, ROLES.OWNER);
+// Mengubah data katalog (nama, harga, harga modal, status aktif). OWNER ikut
+// karena hanya OWNER yang bisa melihat harga modal, jadi hanya OWNER yang bisa
+// melengkapinya dengan benar. Stok masuk dan opname tetap khusus ADMIN.
+const canEditCatalog = authorize(ROLES.ADMIN, ROLES.OWNER);
 
 // Harus didaftarkan SEBELUM "/:id", kalau tidak Express akan membaca
 // "low-stock" sebagai nilai parameter :id.
@@ -32,7 +36,7 @@ router.get("/low-stock", canReadInternal, sparePartController.lowStock);
 router.get("/", canRead, validate(listSparePartsSchema), sparePartController.list);
 router.post("/", canWrite, validate(createSparePartSchema), sparePartController.create);
 router.get("/:id", canRead, validate(sparePartIdSchema), sparePartController.getById);
-router.patch("/:id", canWrite, validate(updateSparePartSchema), sparePartController.update);
+router.patch("/:id", canEditCatalog, validate(updateSparePartSchema), sparePartController.update);
 
 router.post("/:id/stock-in", canWrite, validate(stockInSchema), sparePartController.stockIn);
 router.post(

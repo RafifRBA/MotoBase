@@ -419,3 +419,31 @@ describe("purchasePrice opsional saat membuat", () => {
         expect(res.body.data.purchasePrice).toBe(0);
     });
 });
+
+describe("Mengubah katalog (PATCH)", () => {
+    it("owner bisa melengkapi harga modal, mekanik ditolak", async () => {
+        const admin = await asRole(ROLES.ADMIN);
+        const part = await buatPart(admin, { sku: "TANPA-MODAL-2", purchasePrice: undefined });
+        const owner = await asRole(ROLES.OWNER);
+        const mechanic = await asRole(ROLES.MECHANIC);
+
+        const ditolak = await mechanic
+            .patch(`/api/v1/spare-parts/${part.id}`)
+            .send({ purchasePrice: 1 });
+        expect(ditolak.status).toBe(403);
+
+        const res = await owner
+            .patch(`/api/v1/spare-parts/${part.id}`)
+            .send({ purchasePrice: 15000 });
+        expect(res.status).toBe(200);
+        expect(res.body.data.purchasePrice).toBe(15000);
+
+        // Admin tetap tidak melihat harga modal, dan owner tidak bisa mengubah stok.
+        const lihat = await admin.get(`/api/v1/spare-parts/${part.id}`);
+        expect(lihat.body.data.purchasePrice).toBeUndefined();
+        const stok = await owner
+            .post(`/api/v1/spare-parts/${part.id}/stock-in`)
+            .send({ quantity: 1 });
+        expect(stok.status).toBe(403);
+    });
+});

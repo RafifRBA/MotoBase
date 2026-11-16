@@ -24,6 +24,7 @@ type Dialog = "edit" | "in" | "adjust" | null;
 export function SparePartDetail({ id }: { id: string }) {
   const { user } = useAuth();
   const canWrite = useCan(ACCESS.stockWrite);
+  const canEdit = useCan(ACCESS.partEdit);
   const canSeeMovements = useCan(ACCESS.stockRead);
   const [dialog, setDialog] = useState<Dialog>(null);
   const [page, setPage] = useState(1);
@@ -46,9 +47,9 @@ export function SparePartDetail({ id }: { id: string }) {
         actions={
           <>
             <LinkButton href="/spare-parts" variant="secondary">Kembali</LinkButton>
+            {canEdit && <Button variant="secondary" onClick={() => setDialog("edit")}><Pencil className="size-4" aria-hidden /> Ubah</Button>}
             {canWrite && (
               <>
-                <Button variant="secondary" onClick={() => setDialog("edit")}><Pencil className="size-4" aria-hidden /> Ubah</Button>
                 <Button variant="secondary" onClick={() => setDialog("adjust")}><ClipboardCheck className="size-4" aria-hidden /> Opname</Button>
                 <Button onClick={() => setDialog("in")}><ArrowDownToLine className="size-4" aria-hidden /> Stok masuk</Button>
               </>
