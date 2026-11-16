@@ -3,8 +3,8 @@
 Layanan digitalisasi operasional bengkel motor yang membantu mengelola alur
 servis, pencatatan otomatis stok suku cadang, dan riwayat kendaraan secara
 terpusat. Untuk memastikan alur kerja transparan dan efisien, layanan ini juga
-menyediakan pelacakan status pengerjaan bagi pelanggan serta laporan analitik
-bagi pemilik bengkel.
+menyediakan pelacakan status pengerjaan dan portal bagi pelanggan, nota servis
+via email, serta laporan analitik bagi pemilik bengkel.
 
 
 ## Latar belakang
@@ -19,7 +19,7 @@ tiga persoalan:
 3. Riwayat servis pelanggan lama hilang ketika buku catatan penuh atau rusak.
 
 MotoBase menjawab ketiganya: status servis dapat dipantau pelanggan lewat
-tautan tanpa perlu akun, stok berkurang otomatis setiap kali suku cadang
+tautan tanpa perlu akun (atau lewat akun pelanggan), stok berkurang otomatis setiap kali suku cadang
 dicatat terpakai, dan seluruh riwayat tersimpan permanen di basis data.
 
 ## Fitur utama
@@ -27,12 +27,14 @@ dicatat terpakai, dan seluruh riwayat tersimpan permanen di basis data.
 | Fitur | Keterangan |
 |---|---|
 | Alur servis bertahap | `ANTRE → DIPERIKSA → DIKERJAKAN → SELESAI → DIAMBIL`, tidak bisa melompat, setiap perubahan tercatat pelakunya |
-| Tiga peran dengan wewenang berbeda | Kasir membuat order, mekanik memperbarui status, pemilik melihat laporan |
+| Empat peran dengan wewenang berbeda | Kasir/admin membuat order dan mencatat pembayaran, mekanik memperbarui status dan mencatat suku cadang, pemilik melihat laporan, pelanggan memakai portal |
 | Stok otomatis | Pemakaian suku cadang langsung mengurangi stok dalam satu transaksi basis data |
 | Peringatan stok menipis | Penandaan otomatis saat jumlah mencapai batas minimum |
 | Pelacakan publik | Tautan berbasis token untuk pelanggan, tanpa login, dengan data pribadi disamarkan |
 | Riwayat kendaraan | Seluruh servis tersimpan dan dapat ditelusuri per kendaraan maupun per pelanggan |
 | Laporan pemilik | Ringkasan servis, pendapatan, pemakaian suku cadang, stok menipis, kinerja mekanik |
+| Portal pelanggan | Pelanggan mendaftar sendiri, mengelola kendaraan dan profil, dan mengajukan servis yang diverifikasi admin sebelum menjadi order |
+| Nota servis via email | Nota PDF dikirim otomatis saat servis selesai lewat antrean persisten dengan percobaan ulang (SMTP opsional) |
 
 ## Kelompok 7
 
@@ -61,13 +63,16 @@ MotoBase/
 │   │   │   ├── auth/           login, refresh token, JWT, kata sandi
 │   │   │   ├── users/          akun staf
 │   │   │   ├── customers/      data pelanggan
+│   │   │   ├── customer-portal/ registrasi dan endpoint /customer/* untuk pelanggan
 │   │   │   ├── vehicles/       data kendaraan
 │   │   │   ├── service-orders/ servis, status, pelacakan publik
+│   │   │   ├── service-requests/ pengajuan servis dari pelanggan
+│   │   │   ├── receipts/       nota PDF dan pengiriman email
 │   │   │   ├── spare-parts/    katalog dan stok suku cadang
 │   │   │   ├── stock-movements/ riwayat pergerakan stok
 │   │   │   └── reports/        laporan pemilik
 │   │   ├── routes/             penggabungan seluruh router
-│   │   ├── utils/              hash, phone, mask, pagination, transaction
+│   │   ├── utils/              hash, phone, mask, pagination, transaction, ref
 │   │   ├── app.js              konfigurasi Express
 │   │   └── server.js           titik masuk aplikasi
 │   ├── tests/
@@ -77,10 +82,12 @@ MotoBase/
 │   ├── .env.example            contoh konfigurasi
 │   ├── eslint.config.js
 │   └── package.json
-└── frontend/                   antarmuka pengguna (Milestone 2)
+├── frontend/                   antarmuka pengguna (Next.js), lihat frontend/README.md
+│   └── mock-backend/           backend tiruan untuk demo tampilan
+└── brand/                      logo, kit identitas, dan panduan pemakaian
 ```
 
-Setiap modul memakai pola yang sama dan hanya empat lapis:
+Setiap modul memakai pola yang sama, lima berkas:
 
 | Berkas | Isi |
 |---|---|
@@ -102,9 +109,11 @@ Setiap modul memakai pola yang sama dan hanya empat lapis:
 | Autentikasi | jsonwebtoken, bcryptjs | 9, 3 |
 | Keamanan | Helmet, CORS, express-rate-limit | 8, 2, 8 |
 | Pencatatan log | Pino, pino-http | 10, 11 |
+| Email nota | Nodemailer, PDFKit | 10, 0.20 |
 | Pengujian | Vitest, Supertest, mongodb-memory-server | 5, 7, 11 |
 | Kualitas kode | ESLint, Prettier | 10, 3 |
-| Frontend (Milestone 2) | Next.js | — |
+| Frontend | Next.js, React, TypeScript | 16, 19, 5 |
+| Gaya dan data (frontend) | Tailwind CSS, TanStack Query | 4, 5 |
 
 ## Menjalankan backend
 
@@ -116,6 +125,8 @@ npm run dev
 ```
 
 Cek server hidup: `http://localhost:6318/health`
+
+`.env.example` memakai `PORT=6318` (yang dituju proxy frontend). Tanpa `PORT`, backend memakai 3000.
 
 Membuat akun pemilik pertama:
 
@@ -131,16 +142,32 @@ Perintah lain:
 |---|---|
 | `npm run dev` | menjalankan dengan muat ulang otomatis |
 | `npm start` | menjalankan biasa |
-| `npm test` | 174 pengujian otomatis (memakai basis data di memori) |
+| `npm test` | 195 pengujian otomatis (memakai basis data di memori) |
 | `npm run lint` | pemeriksaan ESLint |
 | `npm run format` | merapikan format dengan Prettier |
+| `npm run format:check` | memeriksa format tanpa mengubah file |
+| `npm run reset:password` | mengganti kata sandi pengguna (lihat `scripts/reset-password.js`) |
+
+Email nota bersifat opsional dan mati secara default. Cara mengaktifkannya ada di [backend/README.md](backend/README.md#email-nota-servis-opsional).
+
+## Menjalankan frontend
+
+```bash
+cd frontend
+npm install
+npm run dev        # http://localhost:3000
+```
+
+Frontend meneruskan `/api/v1/*` ke backend di `BACKEND_URL` (default `http://localhost:6318`, atur di `frontend/.env.local`). Tanpa backend, jalankan `npm run mock` untuk data contoh. Detail ada di [frontend/README.md](frontend/README.md).
 
 ## Dokumentasi
 
 | Dokumen | Isi |
 |---|---|
-| [backend/docs/API.md](backend/docs/API.md) | referensi lengkap 48 endpoint (46 bisnis + 2 utilitas), kode error, dan aturan wewenang |
-| [backend/README.md](backend/README.md) | catatan pengembangan backend |
+| [backend/docs/API.md](backend/docs/API.md) | referensi lengkap 59 endpoint (57 bisnis + 2 utilitas), kode error, dan aturan wewenang |
+| [backend/README.md](backend/README.md) | catatan pengembangan backend dan pengaturan email |
+| [frontend/README.md](frontend/README.md) | menjalankan frontend, peran dan akses, serta perbedaan backend tiruan |
+| [brand/PANDUAN-LOGO.md](brand/PANDUAN-LOGO.md) | panduan pemakaian logo dan identitas |
 
 ## Laporan
 

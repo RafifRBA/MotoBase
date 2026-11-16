@@ -17,7 +17,7 @@ sederhana yang tetap aman, dan semuanya mudah diubah nanti.
 
 | Keputusan | Yang dipakai sekarang |
 |---|---|
-| Login staf | Email + password |
+| Login | Email + password (staf dan pelanggan) |
 | Refresh token | Cookie `HttpOnly`, rotasi setiap refresh |
 | Masa berlaku tracking token | 90 hari (`TRACKING_TOKEN_TTL_DAYS`) |
 | Yang boleh mengubah status servis | Mekanik yang ditugaskan + admin |
@@ -26,6 +26,8 @@ sederhana yang tetap aman, dan semuanya mudah diubah nanti.
 | Pembayaran parsial | Belum ada, hanya `BELUM_DIBAYAR` / `DIBAYAR` |
 | Cabang | Satu cabang |
 | Provider WhatsApp | Belum dipilih, notifikasi belum diaktifkan |
+| Nota servis | Dikirim lewat email (SMTP), bukan WhatsApp |
+| Pendaftaran pelanggan | Mandiri, dan tidak menautkan ke data pelanggan lama |
 
 ---
 
@@ -40,6 +42,10 @@ Di luar prefix `/api/v1` dan tidak terkena rate limit.
 ---
 
 ## Authentication
+
+Login berlaku untuk semua peran (`OWNER`, `ADMIN`, `MECHANIC`, `CUSTOMER`); peran ada
+di `user.role`. Pendaftaran pelanggan: `POST /auth/register-customer` (lihat
+*Portal pelanggan*).
 
 ### POST /auth/login
 
@@ -127,6 +133,14 @@ Butuh header `Authorization: Bearer <accessToken>`.
   arahkan ke halaman login.
 - Setiap response membawa header `X-Request-Id`, dan nilainya sama dengan
   `error.requestId`. Sertakan nilai itu saat melaporkan bug.
+- Cookie refresh memakai `SameSite=Strict` dan `Path=/api/v1/auth`, jadi frontend
+  harus memanggil API dari **origin yang sama**. Frontend resmi memakai
+  `rewrites` Next.js (`/api/v1/*` diteruskan ke backend), bukan permintaan
+  lintas-origin.
+- Gunakan `user.role` untuk mengarahkan pengguna dan menyembunyikan menu, tetapi
+  wewenang sebenarnya selalu dicek backend.
+- Kirim header `Idempotency-Key` (UUID baru per aksi pengguna, dipakai ulang saat
+  retry) pada stok masuk, opname, dan pencatatan pemakaian suku cadang.
 
 ---
 
@@ -220,21 +234,22 @@ Kode error: `VEHICLE_NOT_FOUND` (404), `LICENSE_PLATE_ALREADY_USED` (409),
 
 ## Service Orders
 
-Semua butuh login. `POST`, `assign-mechanic`, `payment`, dan endpoint tracking:
-**ADMIN**. Ubah data, status, dan suku cadang: **ADMIN atau MECHANIC** (mekanik
+Semua butuh login. `POST`, `assign-mechanic`, `payment`, `resend-receipt`, dan
+endpoint tracking: **ADMIN**. Ubah data, status, dan suku cadang: **ADMIN atau MECHANIC** (mekanik
 hanya untuk order yang ditugaskan kepadanya). `GET`: semua staf.
 
 | Endpoint | Keterangan |
 |---|---|
 | `GET /service-orders?page&limit&status&customerId&vehicleId&assignedMechanicId&paymentStatus&startDate&endDate&search` | mekanik otomatis hanya melihat order miliknya |
 | `POST /service-orders` | `{ customerId, vehicleId, complaint, serviceCost?, assignedMechanicId?, internalNotes? }` |
-| `GET /service-orders/:id` | detail |
+| `GET /service-orders/:id` | detail (ADMIN dan OWNER juga menerima `receiptEmail`) |
 | `PATCH /service-orders/:id` | `complaint`, `diagnosis`, `internalNotes`, `serviceCost` (mekanik tidak boleh ubah biaya) |
 | `PATCH /service-orders/:id/assign-mechanic` | `{ mechanicId }` atau `{ mechanicId: null }` untuk melepas |
 | `PATCH /service-orders/:id/status` | `{ status, note?, isCorrection? }` |
 | `POST /service-orders/:id/parts` | `{ sparePartId, quantity }` — dukung header `Idempotency-Key` |
 | `DELETE /service-orders/:id/parts/:usageId` | membatalkan pemakaian, stok kembali lewat REVERSAL |
 | `POST /service-orders/:id/payment` | `{ method }` — `TUNAI`, `TRANSFER`, atau `QRIS` |
+| `POST /service-orders/:id/resend-receipt` | mengantrekan ulang nota email, **202** (lihat *Nota servis via email*) |
 | `POST /service-orders/:id/rotate-tracking-token` | membuat link tracking baru, yang lama mati |
 | `POST /service-orders/:id/revoke-tracking-token` | mematikan link tracking |
 | `GET /vehicles/:id/service-orders` | riwayat servis satu kendaraan |
@@ -266,7 +281,8 @@ Kode error: `SERVICE_ORDER_NOT_FOUND`, `VEHICLE_NOT_OWNED_BY_CUSTOMER` (409),
 `INVALID_STATUS_TRANSITION` (409), `ORDER_ALREADY_CLOSED` (409),
 `NOT_ASSIGNED_MECHANIC` (403), `INVALID_STATUS_FOR_PART_USAGE` (409),
 `INSUFFICIENT_STOCK` (409), `PART_USAGE_NOT_FOUND` (404), `ALREADY_PAID` (409),
-`ORDER_NOT_READY_FOR_PAYMENT` (409), `CORRECTION_NOTE_REQUIRED` (400).
+`ORDER_NOT_READY_FOR_PAYMENT` (409), `CORRECTION_NOTE_REQUIRED` (400),
+`ORDER_CHANGED` (409, data berubah di tengah jalan; muat ulang lalu coba lagi).
 
 ---
 
@@ -389,19 +405,19 @@ Pengiriman nota melalui email sudah tersedia; lihat bagian "Nota servis via emai
 |---|---|
 | Notifikasi WhatsApp | **belum** — provider belum dipilih |
 | Unduh struk PDF (`GET /service-orders/:id/receipt`) | **belum** — PDF sudah dibuat sebagai lampiran email |
-| `POST /service-orders/:id/resend-tracking` | **belum** — bergantung pada notifikasi |
+| `POST /service-orders/:id/resend-tracking` | **belum** — pengiriman ulang link tracking lewat email atau WhatsApp belum ada |
 | Menautkan akun pelanggan ke data pelanggan lama | **belum** — butuh verifikasi kepemilikan nomor (OTP) |
 | Dokumentasi OpenAPI/Swagger | **belum** — dokumen ini sebagai gantinya |
 
-Titik pemasangannya sudah disiapkan: perubahan status ke `SELESAI` adalah satu
-tempat tunggal untuk memicu notifikasi, dan data struk sudah lengkap di service
-order.
+Notifikasi email sudah terpasang di satu titik: perubahan status ke `SELESAI`
+menyimpan snapshot nota dan antrean email dalam satu penulisan yang sama.
+Notifikasi WhatsApp bisa dipasang di titik yang sama.
 
 ---
 
 ## Role
 
-`ADMIN` (kasir), `MECHANIC`, dan `OWNER`. Seluruh pengecekan wewenang
+`ADMIN` (kasir), `MECHANIC`, `OWNER`, dan `CUSTOMER`. Seluruh pengecekan wewenang
 dilakukan di backend, bukan sekadar menyembunyikan menu di frontend.
 
 | Kemampuan | ADMIN | MECHANIC | OWNER |
@@ -412,6 +428,7 @@ dilakukan di backend, bukan sekadar menyembunyikan menu di frontend.
 | Mengelola pelanggan & kendaraan | Ya | Lihat kendaraan saja | Lihat |
 | Mengelola stok (stok masuk, opname) | Ya | Lihat | Lihat |
 | Mengubah katalog suku cadang & harga modal | Ya | Tidak | Ya |
+| Mengirim ulang nota email | Ya | Tidak | Tidak |
 | Melihat laporan | Terbatas | Tidak | Ya |
 | Melihat harga modal | Tidak | Tidak | Ya |
 

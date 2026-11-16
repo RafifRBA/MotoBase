@@ -3,10 +3,12 @@
 REST API untuk operasional Bengkel Motor Laju Jaya: antrean servis, stok suku
 cadang, riwayat kendaraan, tracking pelanggan tanpa login, dan laporan pemilik.
 
-Tiga peran: **admin/kasir** membuat order, **mekanik** memperbarui status dan
-mencatat suku cadang, **pemilik** melihat laporan.
+Empat peran: **admin/kasir** membuat order dan mencatat pembayaran, **mekanik**
+memperbarui status dan mencatat suku cadang, **pemilik** melihat laporan, dan
+**pelanggan** memakai portal sendiri (daftar akun, kendaraan, pengajuan servis).
 
-Stack: Node.js 24, Express 5, MongoDB Atlas + Mongoose, Zod, JWT, Pino, Vitest.
+Stack: Node.js 24, Express 5, MongoDB Atlas + Mongoose, Zod, JWT, Pino, Vitest,
+Nodemailer + PDFKit (nota email).
 
 ## Menjalankan
 
@@ -23,6 +25,9 @@ node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"
 ```
 
 Cek server hidup: `curl http://localhost:6318/health`
+
+`.env.example` memakai `PORT=6318`, yang dituju proxy frontend. Tanpa `PORT`, backend
+memakai 3000.
 
 ## Membuat akun pemilik pertama
 
@@ -48,6 +53,8 @@ Akun staf berikutnya dibuat OWNER lewat `POST /api/v1/users`.
 | `npm run test:watch` | tes berjalan terus saat file diubah |
 | `npm run lint` | ESLint |
 | `npm run format` | rapikan format dengan Prettier |
+| `npm run format:check` | periksa format tanpa mengubah file |
+| `npm run reset:password` | ganti password pengguna (lihat `scripts/reset-password.js`) |
 
 ## Struktur
 
@@ -55,13 +62,14 @@ Akun staf berikutnya dibuat OWNER lewat `POST /api/v1/users`.
 src/
 ├── config/        env.js (validasi environment), db.js
 ├── middlewares/   authenticate, authorize, validate, rate-limit, error-handler
-├── modules/       satu folder per domain: auth, users, customers, vehicles,
-│                  service-orders, spare-parts, stock-movements, reports
+├── modules/       satu folder per domain: auth, users, customers,
+│                  customer-portal, vehicles, service-orders, service-requests,
+│                  receipts, spare-parts, stock-movements, reports
 ├── routes/        penggabungan seluruh router
-└── utils/         hash, phone, mask, pagination, transaction, tracking-token
+└── utils/         hash, phone, mask, pagination, transaction, tracking-token, ref
 ```
 
-Tiap modul memakai pola yang sama dan hanya empat lapis:
+Tiap modul memakai pola yang sama (lima berkas):
 
 | File | Isi |
 |---|---|
@@ -71,7 +79,7 @@ Tiap modul memakai pola yang sama dan hanya empat lapis:
 | `*.controller.js` | terjemahan HTTP + bentuk response yang dikirim ke client |
 | `*.route.js` | URL + middleware (authenticate, authorize, validate) |
 
-Menambah endpoint baru berarti menyentuh empat file itu saja. Contoh paling
+Menambah endpoint baru berarti menyentuh lima file itu saja. Contoh paling
 mudah ditiru: modul `customers`.
 
 ## Dokumentasi
@@ -79,6 +87,8 @@ mudah ditiru: modul `customers`.
 | Dokumen | Untuk siapa |
 |---|---|
 | [docs/API.md](docs/API.md) | referensi lengkap: tiap endpoint, kode error, aturan otorisasi, asumsi yang diambil |
+| [../frontend/README.md](../frontend/README.md) | menjalankan frontend dan backend tiruan |
+| [../brand/PANDUAN-LOGO.md](../brand/PANDUAN-LOGO.md) | logo (dipakai juga di PDF nota) |
 
 ## Catatan pengembangan
 
@@ -89,11 +99,48 @@ mudah ditiru: modul `customers`.
   seed). File lain memakai `import { env }`.
 - **Nilai uang berupa integer rupiah**, bukan desimal.
 - **Semua import antar-file wajib menyertakan `.js`** karena proyek ini ESM.
+- **Endpoint portal tidak pernah menerima `customerId` dari klien.** Id pelanggan
+  selalu diambil dari akun yang login (`req.user.customerId`), supaya pelanggan
+  hanya bisa menyentuh datanya sendiri.
+- **Setelah `git pull`, jalankan `npm install`.** Dependensi baru (mis. `nodemailer`,
+  `pdfkit`) tidak terpasang otomatis, dan backend gagal start tanpanya. Perubahan
+  `package-lock.json` yang hanya berupa penanda `"peer": true` tidak perlu di-commit.
 
-## Email nota servis
+## Email nota servis (opsional)
 
-Isi pengaturan SMTP di `.env.example`, lalu aktifkan `EMAIL_ENABLED=true` dan jalankan ulang backend. `SMTP_HOST`, `SMTP_PORT`, dan `EMAIL_FROM` wajib saat diaktifkan; kredensial SMTP opsional tetapi harus diisi berpasangan. Port 465 menggunakan `SMTP_SECURE=true`; 587 menggunakan `false` (STARTTLS).
+Nota PDF dikirim ke email pelanggan saat servis pertama kali berstatus `SELESAI`.
+Fitur ini **mati secara default**: backend berjalan normal tanpa SMTP.
 
-Nota PDF otomatis diantrekan saat servis pertama kali selesai. Pelanggan tanpa surel tetap bisa diselesaikan; tambahkan surel melalui data pelanggan lalu gunakan **Kirim nota** di detail servis. Admin juga dapat mengirim ulang nota terbaru setelah pembayaran dicatat. Panel menampilkan status antrean, sukses, atau gagal. Tidak ada pengiriman nyata dari mock frontend.
+Untuk mengaktifkan, isi `backend/.env` (**bukan** `.env.example`, yang ikut
+ter-commit dan tidak boleh berisi kredensial), lalu jalankan ulang backend.
+nodemon tidak memantau `.env`, jadi restart manual (`rs` di terminal nodemon).
 
-Antrean persisten tersimpan di MongoDB, worker berjalan dalam proses server setiap 10 detik, dan mencoba ulang kegagalan sampai lima percobaan. Tetap jalankan proses backend agar antrean diproses. Logo PDF menggunakan aset `brand/logo/png/motobase-lockup-warna.png` dari repository; sertakan folder `brand/` saat deployment. Lihat `docs/API.md` untuk endpoint, alasan dilewati, dan batas jaminan pengiriman SMTP.
+```
+EMAIL_ENABLED=true
+SMTP_HOST=smtp.gmail.com
+SMTP_PORT=587
+SMTP_SECURE=false
+SMTP_USER=...
+SMTP_PASSWORD=...
+EMAIL_FROM="MotoBase <alamat-pengirim@domain>"
+```
+
+`SMTP_HOST`, `SMTP_PORT`, dan `EMAIL_FROM` wajib saat diaktifkan; `SMTP_USER` dan
+`SMTP_PASSWORD` harus diisi berpasangan. Port 465 memakai `SMTP_SECURE=true`,
+port 587 memakai `false` (STARTTLS). Untuk Gmail gunakan *App Password*, bukan
+password akun. Layanan yang mewajibkan verifikasi domain pengirim (mis. ZeptoMail)
+tidak bisa memakai alamat `*.vercel.app`; butuh domain milik sendiri.
+
+Pelanggan tanpa surel tetap bisa diselesaikan: tambahkan surel di data
+pelanggan, lalu gunakan **Kirim nota** di detail servis. Admin juga dapat
+mengirim ulang nota terbaru setelah pembayaran dicatat. Panel di detail servis
+menampilkan status antrean, terkirim, atau gagal. Backend tiruan frontend tidak
+mengirim email sungguhan.
+
+Antrean persisten tersimpan di MongoDB (pola outbox), worker berjalan dalam
+proses server setiap 10 detik, dan mencoba ulang kegagalan sampai lima kali.
+Proses backend harus tetap hidup agar antrean diproses, jadi tidak cocok untuk
+fungsi serverless. Logo di PDF dibaca dari
+`brand/logo/png/motobase-lockup-warna.png` di akar repositori; sertakan folder
+`brand/` saat deployment. Endpoint, alasan dilewati, dan batas jaminan
+pengiriman SMTP ada di `docs/API.md`.
