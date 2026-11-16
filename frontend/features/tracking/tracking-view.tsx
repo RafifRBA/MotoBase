@@ -1,7 +1,8 @@
 "use client";
 
 import { useQuery } from "@tanstack/react-query";
-import { Check, Wrench } from "lucide-react";
+import { Check } from "lucide-react";
+import { Logo } from "@/components/brand/logo";
 import { ApiError, publicApi, toApiError } from "@/lib/api";
 import { Badge } from "@/components/ui/badge";
 import { Spinner } from "@/components/ui/states";
@@ -32,8 +33,7 @@ export function TrackingView({ token }: { token: string }) {
     <div className="min-h-screen bg-slate-100">
       <header className="bg-asphalt-900 px-4 py-4 text-white">
         <div className="mx-auto flex max-w-xl items-center gap-3">
-          <span className="grid size-8 place-items-center rounded-lg bg-brand-600"><Wrench className="size-4" aria-hidden /></span>
-          <span className="font-semibold">MotoBase</span>
+          <span className="rounded-lg bg-white px-3 py-1.5"><Logo className="h-6" /></span>
           <span className="text-sm text-slate-400">Pantau servis motor Anda</span>
         </div>
       </header>

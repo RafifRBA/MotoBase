@@ -3,7 +3,8 @@
 import { useEffect, useState, type ReactNode } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { LogOut, Menu, Wrench } from "lucide-react";
+import { LogOut, Menu } from "lucide-react";
+import { Logo } from "@/components/brand/logo";
 import { useAuth } from "@/features/auth/auth-provider";
 import { FullPageSpinner } from "@/components/ui/states";
 import { ROLE_LABEL } from "@/lib/constants";
@@ -37,11 +38,8 @@ export function DashboardShell({ children }: { children: ReactNode }) {
           open ? "translate-x-0" : "-translate-x-full",
         )}
       >
-        <div className="flex h-16 items-center gap-3 px-5">
-          <span className="grid size-9 place-items-center rounded-lg bg-brand-600 text-white">
-            <Wrench className="size-5" aria-hidden />
-          </span>
-          <span className="text-base font-semibold text-white">MotoBase</span>
+        <div className="flex h-16 items-center bg-white px-5">
+          <Logo className="h-8" />
         </div>
         <nav className="flex-1 space-y-1 px-3 py-2" aria-label="Menu utama">
           {items.map(({ href, label, icon: Icon }) => {

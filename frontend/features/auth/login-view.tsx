@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { Wrench } from "lucide-react";
+import { Logo } from "@/components/brand/logo";
 import { Button } from "@/components/ui/button";
 import { Field, Input } from "@/components/ui/form";
 import { FullPageSpinner } from "@/components/ui/states";
@@ -48,11 +48,8 @@ export function LoginView() {
   return (
     <main className="grid min-h-screen lg:grid-cols-[1.1fr_1fr]">
       <section className="hidden flex-col justify-between bg-asphalt-900 p-12 text-slate-200 lg:flex">
-        <div className="flex items-center gap-3">
-          <span className="grid size-10 place-items-center rounded-lg bg-brand-600 text-white">
-            <Wrench className="size-5" aria-hidden />
-          </span>
-          <span className="text-lg font-semibold text-white">MotoBase</span>
+        <div className="self-start rounded-xl bg-white px-5 py-3">
+          <Logo className="h-9" />
         </div>
         <div>
           <p className="text-6xl font-bold leading-none text-brand-500">#012</p>
