@@ -12,6 +12,7 @@ import { decreaseStock, returnStock } from "../spare-parts/spare-part.service.js
 import { ROLES, User } from "../users/user.model.js";
 import { Vehicle } from "../vehicles/vehicle.model.js";
 import { nextSequence } from "./counter.model.js";
+import { prepareReceiptEmail } from "../receipts/receipt.service.js";
 import { PAYMENT_STATUS, ServiceOrder } from "./service-order.model.js";
 import {
     ORDER_STATUS,
@@ -244,21 +245,42 @@ export const changeStatus = async (id, { status, note, isCorrection }, actor) =>
     const previousStatus = order.currentStatus;
     appendStatus(order, status, actor, { note: note ?? null, isCorrection });
 
+    const firstCompletion = status === ORDER_STATUS.SELESAI && !order.completedAt;
     if (status === ORDER_STATUS.SELESAI) order.completedAt = new Date();
     if (status === ORDER_STATUS.DIAMBIL) order.pickedUpAt = new Date();
     if (status === ORDER_STATUS.DIBATALKAN) order.cancelledAt = new Date();
 
-    await order.save();
+    if (firstCompletion) order.receiptEmail = await prepareReceiptEmail(order);
+
+    // A concurrent completion must not reset a job already claimed by a worker.
+    // Commit the transition, history entry, and outbox with one conditional write.
+    const updated = await ServiceOrder.findOneAndUpdate(
+        { _id: order._id, currentStatus: previousStatus, __v: order.__v },
+        {
+            $set: {
+                currentStatus: status,
+                completedAt: order.completedAt,
+                pickedUpAt: order.pickedUpAt,
+                cancelledAt: order.cancelledAt,
+                ...(firstCompletion ? { receiptEmail: order.receiptEmail } : {}),
+            },
+            $push: { statusHistory: order.statusHistory.at(-1).toObject() },
+            $inc: { __v: 1 },
+        },
+        { returnDocument: "after", runValidators: true },
+    );
+    if (!updated) {
+        throw new ApiError(409, "ORDER_CHANGED", "Data servis berubah. Muat ulang lalu coba lagi");
+    }
 
     logger.info(
         { actorId: actor.id, orderId: order.id, from: previousStatus, to: status, isCorrection },
         "Status service order berubah",
     );
 
-    // Titik pemasangan notifikasi "motor siap diambil". Sengaja
-    // dipanggil setelah database berhasil disimpan, dan kegagalan notifikasi
-    // tidak boleh membatalkan perubahan status.
-    return order;
+    // Worker mengirim nota dari outbox setelah perubahan ini tersimpan.
+    // Kegagalan SMTP tidak membatalkan status servis.
+    return updated;
 };
 
 export const addPartUsage = async (id, { sparePartId, quantity }, actor, idempotencyKey) => {

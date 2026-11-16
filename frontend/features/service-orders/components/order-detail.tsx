@@ -18,6 +18,7 @@ import { StatusActions } from "./status-actions";
 import { StatusBadge } from "./status-badge";
 import { StatusTimeline } from "./status-timeline";
 import { TrackingPanel } from "./tracking-panel";
+import { ReceiptPanel } from "./receipt-panel";
 
 export function OrderDetail({ id }: { id: string }) {
   const q = useOrder(id);
@@ -77,6 +78,7 @@ export function OrderDetail({ id }: { id: string }) {
 
           <PartsPanel order={o} />
           <PaymentPanel order={o} />
+          <ReceiptPanel order={o} />
         </div>
 
         <div className="space-y-6">

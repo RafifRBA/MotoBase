@@ -26,4 +26,5 @@ export const ordersApi = {
   pay: (id: string, b: { method: PaymentMethodValue }) => apiPost<ServiceOrder>(`${base(id)}/payment`, b),
   rotateTracking: (id: string) => apiPost<{ trackingToken?: string }>(`${base(id)}/rotate-tracking-token`),
   revokeTracking: (id: string) => apiPost<unknown>(`${base(id)}/revoke-tracking-token`),
+  resendReceipt: (id: string) => apiPost<ServiceOrder>(`${base(id)}/resend-receipt`),
 };

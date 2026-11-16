@@ -89,3 +89,11 @@ mudah ditiru: modul `customers`.
   seed). File lain memakai `import { env }`.
 - **Nilai uang berupa integer rupiah**, bukan desimal.
 - **Semua import antar-file wajib menyertakan `.js`** karena proyek ini ESM.
+
+## Email nota servis
+
+Isi pengaturan SMTP di `.env.example`, lalu aktifkan `EMAIL_ENABLED=true` dan jalankan ulang backend. `SMTP_HOST`, `SMTP_PORT`, dan `EMAIL_FROM` wajib saat diaktifkan; kredensial SMTP opsional tetapi harus diisi berpasangan. Port 465 menggunakan `SMTP_SECURE=true`; 587 menggunakan `false` (STARTTLS).
+
+Nota PDF otomatis diantrekan saat servis pertama kali selesai. Pelanggan tanpa surel tetap bisa diselesaikan; tambahkan surel melalui data pelanggan lalu gunakan **Kirim nota** di detail servis. Admin juga dapat mengirim ulang nota terbaru setelah pembayaran dicatat. Panel menampilkan status antrean, sukses, atau gagal. Tidak ada pengiriman nyata dari mock frontend.
+
+Antrean persisten tersimpan di MongoDB, worker berjalan dalam proses server setiap 10 detik, dan mencoba ulang kegagalan sampai lima percobaan. Tetap jalankan proses backend agar antrean diproses. Logo PDF menggunakan aset `brand/logo/png/motobase-lockup-warna.png` dari repository; sertakan folder `brand/` saat deployment. Lihat `docs/API.md` untuk endpoint, alasan dilewati, dan batas jaminan pengiriman SMTP.

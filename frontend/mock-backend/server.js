@@ -122,6 +122,7 @@ function presentOrder(o, withToken = false) {
   const { trackingToken, ...rest } = o;
   return {
     ...rest,
+    receiptEmail: { status: "skipped", reason: "demo_mode", attempts: 0, sentAt: null },
     customerId: c ? { id: c.id, name: c.name, phone: c.phone } : o.customerId,
     vehicleId: v ? { id: v.id, licensePlate: v.licensePlate, brand: v.brand, model: v.model } : o.vehicleId,
     assignedMechanicId: ref(byId(users, o.assignedMechanicId)),
@@ -392,6 +393,10 @@ route("POST", "/api/v1/service-orders/:id/payment", ["ADMIN"], ({ params, body }
   if (o.paidAt) throw new HttpError(409, "ALREADY_PAID", "Servis sudah dibayar");
   Object.assign(o, { paymentStatus: "LUNAS", paymentMethod: body.paymentMethod, paidAt: iso() });
   return { status: 201, message: "Pembayaran dicatat", data: presentOrder(o) };
+});
+route("POST", "/api/v1/service-orders/:id/resend-receipt", ["ADMIN"], ({ params }) => {
+  mustFind(orders, params.id, "SERVICE_ORDER_NOT_FOUND", "Servis");
+  throw new HttpError(503, "EMAIL_DISABLED", "Mode demo tidak mengirim surel. Gunakan backend asli dengan SMTP yang sudah dikonfigurasi.");
 });
 route("POST", "/api/v1/service-orders/:id/rotate-tracking-token", ["ADMIN"], ({ params }) => {
   const o = mustFind(orders, params.id, "SERVICE_ORDER_NOT_FOUND", "Servis");

@@ -14,12 +14,13 @@ export function Select({ className, ...props }: ComponentProps<"select">) {
   return <select className={cn(base, className)} {...props} />;
 }
 
-export function Field({ label, error, hint, children, className }: { label: string; error?: string; hint?: string; children: ReactNode; className?: string }) {
+export function Field({ label, error, hint, children, className, htmlFor }: { label: string; error?: string; hint?: string; children: ReactNode; className?: string; htmlFor?: string }) {
+  const Container = htmlFor ? "div" : "label";
   return (
-    <label className={cn("block space-y-1.5", className)}>
-      <span className="text-sm font-medium text-slate-700">{label}</span>
+    <Container className={cn("block space-y-1.5", className)}>
+      {htmlFor ? <label htmlFor={htmlFor} className="text-sm font-medium text-slate-700">{label}</label> : <span className="text-sm font-medium text-slate-700">{label}</span>}
       {children}
       {error ? <span className="block text-xs text-red-600">{error}</span> : hint ? <span className="block text-xs text-slate-500">{hint}</span> : null}
-    </label>
+    </Container>
   );
 }

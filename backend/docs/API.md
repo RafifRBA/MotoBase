@@ -383,10 +383,12 @@ diartikan sebagai hari penuh waktu lokal bengkel.
 
 ## Belum dikerjakan
 
+Pengiriman nota melalui email sudah tersedia; lihat bagian "Nota servis via email" di bawah.
+
 | Fitur | Status |
 |---|---|
-| Notifikasi WhatsApp / email | **belum** — provider belum dipilih |
-| Struk PDF (`GET /service-orders/:id/receipt`) | **belum** |
+| Notifikasi WhatsApp | **belum** — provider belum dipilih |
+| Unduh struk PDF (`GET /service-orders/:id/receipt`) | **belum** — PDF sudah dibuat sebagai lampiran email |
 | `POST /service-orders/:id/resend-tracking` | **belum** — bergantung pada notifikasi |
 | Menautkan akun pelanggan ke data pelanggan lama | **belum** — butuh verifikasi kepemilikan nomor (OTP) |
 | Dokumentasi OpenAPI/Swagger | **belum** — dokumen ini sebagai gantinya |
@@ -416,3 +418,19 @@ dilakukan di backend, bukan sekadar menyembunyikan menu di frontend.
 `CUSTOMER` adalah role terpisah untuk pelanggan yang mendaftar sendiri. Ia hanya
 bisa memakai endpoint `/customer/*` (lihat *Portal pelanggan*). Pelanggan tanpa
 akun tetap memantau servisnya lewat link tracking yang diberikan saat order dibuat.
+
+## Nota servis via email
+
+Saat order pertama kali berstatus `SELESAI`, backend menyimpan snapshot nota dan antrean email pada dokumen order yang sama. Worker di `npm start` memeriksa antrean setiap 10 detik, termasuk pekerjaan tertunda dari sebelum restart. PDF memakai logo MotoBase, rincian suku cadang, biaya jasa, total, dan status pembayaran pada waktu snapshot. Nota yang belum dibayar jelas bertuliskan **BELUM DIBAYAR**, bukan bukti pembayaran. Tidak ada catatan internal, harga modal, atau audit staf.
+
+Konfigurasi `.env`: `EMAIL_ENABLED=true`, `SMTP_HOST`, `SMTP_PORT`, `SMTP_SECURE`, `EMAIL_FROM`; isi `SMTP_USER` dan `SMTP_PASSWORD` bersama jika provider memerlukan autentikasi. Port 465 biasanya memakai `SMTP_SECURE=true`; port 587 memakai `false` untuk STARTTLS. Pengiriman default nonaktif. Akun SMTP/sender harus disiapkan di provider, tidak ada kredensial bawaan.
+
+Respons order untuk ADMIN/OWNER menyertakan `receiptEmail: { status, reason, attempts, sentAt }`. Status: `pending`, `processing`, `sent`, `failed`, atau `skipped`. Alasan dilewati: `not_completed`, `missing_email`, `email_disabled`. Alamat penerima dan snapshot tidak dikirim melalui API. Mekanik, portal pelanggan, dan tracking publik tidak menerima metadata pengiriman.
+
+`POST /service-orders/:id/resend-receipt` — hanya ADMIN, tanpa body. Mengantrekan nota terbaru, **202**. Bisa dipakai setelah mengisi surel pelanggan, setelah konfigurasi diaktifkan, setelah kegagalan, atau untuk mengirim ulang nota setelah pembayaran dicatat. Bukan pengiriman otomatis kedua saat pembayaran. Hanya boleh pada `SELESAI`/`DIAMBIL`; pekerjaan `pending`/`processing` tidak bisa diantrekan ulang.
+
+Permintaan perubahan status yang kalah balapan dengan perubahan lain membalas `ORDER_CHANGED` (409); muat ulang data sebelum mencoba lagi.
+
+Kode error: `ORDER_NOT_READY_FOR_RECEIPT` (409), `CUSTOMER_EMAIL_REQUIRED` (409), `RECEIPT_ALREADY_QUEUED` (409), `EMAIL_DISABLED` (503), `SERVICE_ORDER_NOT_FOUND` (404).
+
+Kegagalan email tidak membatalkan perubahan status servis. Sistem mencoba ulang dengan jeda bertambah, maksimal lima percobaan normal; sesudahnya admin dapat mencoba lagi. Worker memakai klaim atomik dan lease lima menit untuk pemulihan setelah crash. SMTP tidak menjamin tepat sekali: crash setelah provider menerima email tetapi sebelum pencatatan sukses dapat mengirim duplikat. `sent` berarti provider SMTP menerima email, bukan jaminan email masuk inbox. Gunakan proses backend yang terus berjalan untuk worker ini.

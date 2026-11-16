@@ -3,6 +3,7 @@ import { ServiceOrder } from "./service-order.model.js";
 import { maskLicensePlate, maskName, publicFirstName } from "../../utils/mask.js";
 import { formatRef } from "../../utils/ref.js";
 import * as orderService from "./service-order.service.js";
+import { retryReceiptEmail } from "../receipts/receipt.service.js";
 
 const idempotencyKeyOf = (req) => {
     const key = req.get("idempotency-key");
@@ -83,6 +84,13 @@ export const toServiceOrderResponse = (
     };
 
     if (includeInternalNotes) response.internalNotes = order.internalNotes ?? null;
+    if (includeCustomerPhone)
+        response.receiptEmail = {
+            status: order.receiptEmail?.status ?? "skipped",
+            reason: order.receiptEmail?.reason ?? null,
+            sentAt: order.receiptEmail?.sentAt ?? null,
+            attempts: order.receiptEmail?.attempts ?? 0,
+        };
 
     return response;
 };
@@ -329,4 +337,15 @@ export const revokeTracking = async (req, res) => {
         message: "Link tracking dicabut",
         data: await present(req, order),
     });
+};
+
+export const resendReceipt = async (req, res) => {
+    const order = await retryReceiptEmail(req.validated.params.id);
+    return res
+        .status(202)
+        .json({
+            success: true,
+            message: "Nota masuk antrean pengiriman",
+            data: await present(req, order),
+        });
 };

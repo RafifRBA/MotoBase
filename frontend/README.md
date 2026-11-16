@@ -46,3 +46,9 @@ Kasir: admin@motobase.id. Bisa servis baru, pelanggan, kendaraan, stok, dan pemb
 Mekanik: mekanik@motobase.id. Hanya melihat tugasnya, mengubah status, dan memakai suku cadang.
 Customer: pelanggan@motobase.id
 Kata sandi untuk semua: password123
+
+## Nota dan kata sandi
+
+Login, registrasi (termasuk konfirmasi), dan pembuatan akun staf memiliki tombol mata untuk menampilkan/menyembunyikan kata sandi. Ikon tab/aplikasi menggunakan aset MotoBase di `app/favicon.ico`, `app/icon.svg`, dan `app/apple-icon.png`.
+
+Pada backend asli, detail servis yang selesai menampilkan status email nota untuk admin/pemilik; admin dapat mengirim ulang. Pengiriman memerlukan SMTP di backend. Mode mock menampilkan keterangan demo dan tidak mengirim email sungguhan.

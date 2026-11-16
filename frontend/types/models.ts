@@ -102,6 +102,12 @@ export interface StatusHistoryEntry {
 }
 
 export interface ServiceOrder {
+  receiptEmail?: {
+    status: "pending" | "processing" | "sent" | "failed" | "skipped";
+    reason: string | null;
+    sentAt: string | null;
+    attempts: number;
+  };
   id: string;
   orderNumber: string;
   queueNumber: number;

@@ -90,6 +90,22 @@ const serviceOrderSchema = new mongoose.Schema(
         pickedUpAt: { type: Date, default: null },
         cancelledAt: { type: Date, default: null },
 
+        // Outbox disimpan bersama status order agar antrean email tidak hilang saat restart.
+        receiptEmail: {
+            status: {
+                type: String,
+                enum: ["pending", "processing", "sent", "failed", "skipped"],
+                default: "skipped",
+            },
+            reason: { type: String, default: "not_completed" },
+            attempts: { type: Number, default: 0 },
+            nextAttemptAt: { type: Date, default: null },
+            leaseUntil: { type: Date, default: null },
+            claimId: { type: String, default: null },
+            sentAt: { type: Date, default: null },
+            recipient: { type: String, default: null },
+            snapshot: { type: mongoose.Schema.Types.Mixed, default: null },
+        },
         createdBy: { type: mongoose.Schema.Types.ObjectId, ref: "User", required: true },
     },
     { timestamps: true },
@@ -103,5 +119,6 @@ serviceOrderSchema.index({ vehicleId: 1, createdAt: -1 });
 serviceOrderSchema.index({ assignedMechanicId: 1, currentStatus: 1 });
 serviceOrderSchema.index({ currentStatus: 1, serviceDate: -1 });
 serviceOrderSchema.index({ trackingTokenHash: 1 }, { unique: true, sparse: true });
+serviceOrderSchema.index({ "receiptEmail.status": 1, "receiptEmail.nextAttemptAt": 1 });
 
 export const ServiceOrder = mongoose.model("ServiceOrder", serviceOrderSchema);

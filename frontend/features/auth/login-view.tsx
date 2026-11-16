@@ -8,6 +8,7 @@ import { z } from "zod";
 import { Logo } from "@/components/brand/logo";
 import { Button } from "@/components/ui/button";
 import { Field, Input } from "@/components/ui/form";
+import { PasswordInput } from "@/components/ui/password-input";
 import { FullPageSpinner } from "@/components/ui/states";
 import { describeError } from "@/lib/api";
 import { useAuth } from "./auth-provider";
@@ -77,8 +78,8 @@ export function LoginView() {
           <Field label="Surel" error={errors.email?.message}>
             <Input type="email" autoComplete="username" autoFocus {...register("email")} />
           </Field>
-          <Field label="Kata sandi" error={errors.password?.message}>
-            <Input type="password" autoComplete="current-password" {...register("password")} />
+          <Field htmlFor="login-password" label="Kata sandi" error={errors.password?.message}>
+            <PasswordInput id="login-password" autoComplete="current-password" {...register("password")} />
           </Field>
           <Button type="submit" loading={isSubmitting} className="w-full">
             Masuk

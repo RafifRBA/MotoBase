@@ -1,5 +1,7 @@
 "use client";
 
+import { PasswordInput } from "@/components/ui/password-input";
+
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -70,8 +72,8 @@ export function UserForm({ existing, loading, onSubmit, onCancel }: Props) {
               <option value="ADMIN">Kasir / Admin</option>
             </Select>
           </Field>
-          <Field label="Kata sandi awal" error={errors.password?.message} hint="Minimal 8 karakter. Sampaikan ke staf secara langsung.">
-            <Input type="password" autoComplete="new-password" {...register("password")} />
+          <Field htmlFor="staff-password" label="Kata sandi awal" error={errors.password?.message} hint="Minimal 8 karakter. Sampaikan ke staf secara langsung.">
+            <PasswordInput id="staff-password" autoComplete="new-password" {...register("password")} />
           </Field>
         </>
       )}

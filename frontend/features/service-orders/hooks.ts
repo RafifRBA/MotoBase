@@ -112,6 +112,15 @@ export function usePayOrder(id: string) {
   });
 }
 
+export function useResendReceipt(id: string) {
+  const refresh = useRefreshOrder(id);
+  return useMutation({
+    mutationFn: () => ordersApi.resendReceipt(id),
+    onSuccess: () => { refresh(); notifySuccess("Nota masuk antrean pengiriman"); },
+    onError: notifyError,
+  });
+}
+
 export function useTrackingToken(id: string) {
   const refresh = useRefreshOrder(id);
   const rotate = useMutation({

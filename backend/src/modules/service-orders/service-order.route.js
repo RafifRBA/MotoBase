@@ -57,6 +57,12 @@ router.delete(
 );
 
 router.post("/:id/payment", adminOnly, validate(paymentSchema), orderController.pay);
+router.post(
+    "/:id/resend-receipt",
+    adminOnly,
+    validate(orderIdSchema),
+    orderController.resendReceipt,
+);
 
 // Link tracking hanya boleh diputar ulang atau dicabut oleh admin.
 router.post(
