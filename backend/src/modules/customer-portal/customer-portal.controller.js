@@ -1,6 +1,5 @@
 import ApiError from "../../utils/api-error.js";
 import { formatRef } from "../../utils/ref.js";
-import { toCustomerResponse } from "../customers/customer.controller.js";
 import * as customerService from "../customers/customer.service.js";
 import { ServiceOrder } from "../service-orders/service-order.model.js";
 import * as orderService from "../service-orders/service-order.service.js";
@@ -19,6 +18,18 @@ const ownCustomerId = (req) => {
     }
     return req.user.customerId.toString();
 };
+
+// Allowlist profil pelanggan. `notes` (catatan pribadi staf tentang pelanggan)
+// sengaja tidak ada: pelanggan tidak boleh membacanya.
+const toOwnProfileResponse = (customer) => ({
+    id: customer.id,
+    name: customer.name,
+    phone: customer.phone,
+    email: customer.email ?? null,
+    address: customer.address ?? null,
+    createdAt: customer.createdAt,
+    updatedAt: customer.updatedAt,
+});
 
 // DTO khusus pelanggan: tanpa catatan internal, nama mekanik, riwayat status
 // (yang memuat catatan staf), dan data tracking.
@@ -58,7 +69,18 @@ export const register = async (req, res) => {
 
 export const me = async (req, res) => {
     const customer = await customerService.getCustomerById(ownCustomerId(req));
-    return res.status(200).json({ success: true, data: toCustomerResponse(customer) });
+    return res.status(200).json({ success: true, data: toOwnProfileResponse(customer) });
+};
+
+export const updateMe = async (req, res) => {
+    ownCustomerId(req);
+    const customer = await portalService.updateProfile(req.user, req.validated.body);
+
+    return res.status(200).json({
+        success: true,
+        message: "Profil berhasil diperbarui",
+        data: toOwnProfileResponse(customer),
+    });
 };
 
 export const listVehicles = async (req, res) => {

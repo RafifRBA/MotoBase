@@ -6,7 +6,7 @@ import { ApiError, publicApi, toApiError } from "@/lib/api";
 import { Badge } from "@/components/ui/badge";
 import { Spinner } from "@/components/ui/states";
 import { STATUS_FLOW, STATUS_LABEL, STATUS_TONE } from "@/lib/constants";
-import { formatDateTime, formatRupiah } from "@/lib/format";
+import { formatDate, formatDateTime, formatRupiah } from "@/lib/format";
 import { cn } from "@/lib/utils";
 import type { ApiSuccess } from "@/types/api";
 import type { TrackingView as Tracking } from "@/types/models";
@@ -76,7 +76,7 @@ function TrackingContent({ t }: { t: Tracking }) {
           </div>
           <Badge tone={STATUS_TONE[t.currentStatus]} className="px-3 py-1 text-sm">{STATUS_LABEL[t.currentStatus]}</Badge>
         </div>
-        <p className="mt-4 text-sm text-slate-600">{t.orderNumber} · masuk {formatDateTime(t.serviceDate)}</p>
+        <p className="mt-4 text-sm text-slate-600">{t.orderNumber} · masuk {formatDate(t.serviceDate)}</p>
 
         {cancelled ? (
           <p className="mt-5 rounded-lg bg-red-50 px-3 py-2 text-sm text-red-800">Servis ini dibatalkan. Hubungi bengkel untuk informasi lebih lanjut.</p>

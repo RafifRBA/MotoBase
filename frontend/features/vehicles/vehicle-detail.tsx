@@ -13,7 +13,7 @@ import { useCan } from "@/components/role-gate";
 import { CustomerInline } from "@/features/service-orders/components/ref-display";
 import { StatusBadge } from "@/features/service-orders/components/status-badge";
 import { ACCESS } from "@/lib/permissions";
-import { formatDateTime, formatRupiah } from "@/lib/format";
+import { formatDate, formatRupiah } from "@/lib/format";
 import { useSaveVehicle, useVehicle, useVehicleOrders } from "./hooks";
 import { VehicleForm } from "./vehicle-form";
 
@@ -68,7 +68,7 @@ export function VehicleDetail({ id }: { id: string }) {
             emptyTitle="Belum ada riwayat servis"
             columns={[
               { header: "No. order", cell: (o) => <Link href={`/service-orders/${o.id}`} className="font-medium text-brand-700 hover:underline">{o.orderNumber}</Link> },
-              { header: "Tanggal", cell: (o) => formatDateTime(o.serviceDate) },
+              { header: "Tanggal", cell: (o) => formatDate(o.serviceDate) },
               { header: "Keluhan", cell: (o) => <span className="line-clamp-1">{o.complaint}</span> },
               { header: "Status", cell: (o) => <StatusBadge status={o.currentStatus} /> },
               { header: "Total", className: "text-right", cell: (o) => formatRupiah(o.grandTotal) },

@@ -3,6 +3,7 @@ import logger from "../../utils/logger.js";
 import { isDuplicateKeyError, withTransaction } from "../../utils/transaction.js";
 import { hashPassword } from "../auth/password.js";
 import { Customer } from "../customers/customer.model.js";
+import { updateCustomer } from "../customers/customer.service.js";
 import { ROLES, User } from "../users/user.model.js";
 
 export const registerCustomer = async ({ name, email, phone, password }) => {
@@ -46,4 +47,14 @@ export const registerCustomer = async ({ name, email, phone, password }) => {
         }
         throw error;
     }
+};
+
+export const updateProfile = async (user, data) => {
+    // updateCustomer sudah menolak nomor telepon yang dipakai pelanggan lain.
+    const customer = await updateCustomer(user.customerId.toString(), data, user);
+
+    // Nama di akun login ikut diperbarui supaya tidak berbeda dengan profil.
+    if (data.name) await User.updateOne({ _id: user._id }, { name: data.name });
+
+    return customer;
 };

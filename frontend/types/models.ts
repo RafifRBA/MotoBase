@@ -105,7 +105,9 @@ export interface ServiceOrder {
   id: string;
   orderNumber: string;
   queueNumber: number;
+  /** Hanya tanggal (jam selalu 00.00). Waktu sebenarnya ada di `createdAt` dan riwayat status. */
   serviceDate: string;
+  createdAt: string;
   customerId: NamedRef;
   vehicleId: VehicleRef;
   assignedMechanicId: NamedRef | null;

@@ -14,7 +14,7 @@ import { StatusBadge } from "@/features/service-orders/components/status-badge";
 import { VehicleForm } from "@/features/vehicles/vehicle-form";
 import { useSaveVehicle } from "@/features/vehicles/hooks";
 import { ACCESS } from "@/lib/permissions";
-import { formatDate, formatDateTime, formatPhone, formatRupiah } from "@/lib/format";
+import { formatDate, formatPhone, formatRupiah } from "@/lib/format";
 import { CustomerForm } from "./customer-form";
 import { useCustomer, useCustomerOrders, useCustomerVehicles, useSaveCustomer } from "./hooks";
 
@@ -92,7 +92,7 @@ export function CustomerDetail({ id }: { id: string }) {
             emptyTitle="Belum ada riwayat servis"
             columns={[
               { header: "No. order", cell: (o) => <Link href={`/service-orders/${o.id}`} className="font-medium text-brand-700 hover:underline">{o.orderNumber}</Link> },
-              { header: "Tanggal", cell: (o) => formatDateTime(o.serviceDate) },
+              { header: "Tanggal", cell: (o) => formatDate(o.serviceDate) },
               { header: "Status", cell: (o) => <StatusBadge status={o.currentStatus} /> },
               { header: "Total", className: "text-right", cell: (o) => formatRupiah(o.grandTotal) },
             ]}

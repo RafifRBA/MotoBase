@@ -273,7 +273,8 @@ Kode error: `SERVICE_ORDER_NOT_FOUND`, `VEHICLE_NOT_OWNED_BY_CUSTOMER` (409),
 ## Spare Parts & Stock Movements
 
 `GET` suku cadang: semua staf (mekanik perlu melihat sisa stok). Perubahan stok
-dan katalog: **ADMIN**. Riwayat pergerakan: **ADMIN** dan **OWNER**.
+dan membuat suku cadang: **ADMIN**. Mengubah data katalog (`PATCH`): **ADMIN** dan
+**OWNER**. Riwayat pergerakan: **ADMIN** dan **OWNER**.
 
 | Endpoint | Keterangan |
 |---|---|
@@ -287,7 +288,7 @@ dan katalog: **ADMIN**. Riwayat pergerakan: **ADMIN** dan **OWNER**.
 
 **`purchasePrice` hanya dikirim untuk OWNER**, dan bersifat **opsional** saat
 membuat suku cadang baru (default `0` jika tidak dikirim oleh ADMIN/kasir).
-OWNER dapat melengkapinya belakangan lewat `PATCH /spare-parts/:id` — selama
+OWNER (dan ADMIN) dapat melengkapinya belakangan lewat `PATCH /spare-parts/:id` — selama
 belum diisi (`0`), laporan `modal` dan `margin` akan tidak akurat. Admin dan
 mekanik hanya melihat harga jual.
 
@@ -310,7 +311,8 @@ endpoint portal yang menerima `customerId` dari klien.
 | Endpoint | Role | Isi |
 |---|---|---|
 | `POST /auth/register-customer` | publik | `{ name, email, phone, password }`. Batas 20 pendaftaran per jam per IP. Setelah itu login seperti biasa lewat `/auth/login` |
-| `GET /customer/me` | CUSTOMER | profil pelanggan |
+| `GET /customer/me` | CUSTOMER | profil pelanggan (tanpa `notes`, yang merupakan catatan pribadi staf) |
+| `PATCH /customer/me` | CUSTOMER | `{ name?, phone?, address? }`; `address: ""` mengosongkan alamat. Email tidak bisa diubah (identitas login) |
 | `GET /customer/vehicles?page&limit` | CUSTOMER | kendaraan milik sendiri |
 | `POST /customer/vehicles` | CUSTOMER | `{ licensePlate, brand, model, year?, color?, ... }`, pemilik otomatis akun yang login |
 | `GET /customer/service-orders?page&limit` | CUSTOMER | riwayat servis sendiri (DTO khusus, lihat di bawah) |
@@ -386,7 +388,6 @@ diartikan sebagai hari penuh waktu lokal bengkel.
 | Notifikasi WhatsApp / email | **belum** — provider belum dipilih |
 | Struk PDF (`GET /service-orders/:id/receipt`) | **belum** |
 | `POST /service-orders/:id/resend-tracking` | **belum** — bergantung pada notifikasi |
-| Edit profil pelanggan (`PATCH /customer/me`) | **belum** |
 | Menautkan akun pelanggan ke data pelanggan lama | **belum** — butuh verifikasi kepemilikan nomor (OTP) |
 | Dokumentasi OpenAPI/Swagger | **belum** — dokumen ini sebagai gantinya |
 
@@ -407,7 +408,8 @@ dilakukan di backend, bukan sekadar menyembunyikan menu di frontend.
 | Memperbarui status servis | Ya | Ya (order yang ditugaskan) | Tidak |
 | Mencatat pemakaian suku cadang | Ya | Ya (order yang ditugaskan) | Tidak |
 | Mengelola pelanggan & kendaraan | Ya | Lihat kendaraan saja | Lihat |
-| Mengelola stok | Ya | Lihat | Lihat |
+| Mengelola stok (stok masuk, opname) | Ya | Lihat | Lihat |
+| Mengubah katalog suku cadang & harga modal | Ya | Tidak | Ya |
 | Melihat laporan | Terbatas | Tidak | Ya |
 | Melihat harga modal | Tidak | Tidak | Ya |
 

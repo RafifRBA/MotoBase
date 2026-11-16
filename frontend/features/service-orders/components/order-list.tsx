@@ -11,7 +11,7 @@ import { ErrorState, PageHeader } from "@/components/ui/states";
 import { useCan } from "@/components/role-gate";
 import { useAuth } from "@/features/auth/auth-provider";
 import { ALL_STATUSES, STATUS_LABEL } from "@/lib/constants";
-import { formatDateTime, formatRupiah } from "@/lib/format";
+import { formatDate, formatRupiah } from "@/lib/format";
 import { ACCESS } from "@/lib/permissions";
 import { isPopulated } from "@/lib/refs";
 import { cn } from "@/lib/utils";
@@ -32,7 +32,7 @@ export function OrderList() {
 
   const columns: Column<ServiceOrder>[] = [
     { header: "Antrean", cell: (o) => <span className="text-lg font-bold text-slate-900">{String(o.queueNumber).padStart(3, "0")}</span> },
-    { header: "No. order", cell: (o) => <><span className="font-medium text-slate-900">{o.orderNumber}</span><span className="block text-xs text-slate-500">{formatDateTime(o.serviceDate)}</span></> },
+    { header: "No. order", cell: (o) => <><span className="font-medium text-slate-900">{o.orderNumber}</span><span className="block text-xs text-slate-500">{formatDate(o.serviceDate)}</span></> },
     ...(showVehicle ? [{ header: "Kendaraan", cell: (o: ServiceOrder) => <VehicleInline value={o.vehicleId} lookup={false} /> }] : []),
     { header: "Keluhan", cell: (o) => <span className="line-clamp-1 max-w-xs">{o.complaint}</span> },
     { header: "Status", cell: (o) => <StatusBadge status={o.currentStatus} /> },

@@ -19,6 +19,7 @@ export interface ServiceRequest {
 export interface ServiceRequestInput { vehicleId: string; complaint: string; serviceDate: string }
 export const customerPortalApi = {
   profile: () => apiGet<Customer>("/customer/me"),
+  updateProfile: (body: { name?: string; phone?: string; address?: string }) => apiPatch<Customer>("/customer/me", body),
   vehicles: () => apiList<Vehicle>("/customer/vehicles", { limit: 100 }),
   addVehicle: (body: Omit<Vehicle, "id" | "customerId" | "createdAt">) => apiPost<Vehicle>("/customer/vehicles", body),
   orders: () => apiList<ServiceOrder>("/customer/service-orders", { limit: 100 }),
