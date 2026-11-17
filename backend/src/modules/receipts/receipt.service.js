@@ -72,10 +72,54 @@ const getTransport = () =>
         socketTimeout: 30000,
     }));
 
+// EMAIL_FROM berbentuk `Nama <alamat@email>` atau hanya alamat.
+const parseSender = (from) => {
+    const match = /^\s*(.*?)\s*<([^>]+)>\s*$/.exec(from);
+    return match
+        ? { name: match[1].replace(/^"|"$/g, ""), email: match[2] }
+        : { email: from.trim() };
+};
+
+// Hosting gratis (mis. Railway) memblokir SMTP, jadi Brevo dipanggil lewat HTTPS.
+const sendWithBrevo = async (message) => {
+    let response;
+    try {
+        response = await fetch("https://api.brevo.com/v3/smtp/email", {
+            method: "POST",
+            headers: {
+                "api-key": env.BREVO_API_KEY,
+                "content-type": "application/json",
+                accept: "application/json",
+            },
+            body: JSON.stringify({
+                sender: parseSender(env.EMAIL_FROM),
+                to: [{ email: message.to }],
+                subject: message.subject,
+                textContent: message.text,
+                attachment: message.attachments.map((file) => ({
+                    name: file.filename,
+                    content: file.content.toString("base64"),
+                })),
+            }),
+            signal: AbortSignal.timeout(30000),
+        });
+    } catch (error) {
+        throw Object.assign(new Error("Brevo tidak dapat dihubungi"), {
+            code: error?.name === "TimeoutError" ? "ETIMEDOUT" : "BREVO_NETWORK",
+        });
+    }
+    // Isi respons tidak dicatat karena bisa memuat data penerima.
+    if (!response.ok)
+        throw Object.assign(new Error("Brevo menolak permintaan"), {
+            code: "BREVO_HTTP_ERROR",
+            responseCode: response.status,
+        });
+};
+
 export const sendReceiptEmail = async (job) => {
     const s = job.snapshot;
     const paid = s.paymentStatus === "DIBAYAR";
-    await getTransport().sendMail({
+    const message = {
         from: env.EMAIL_FROM,
         to: job.recipient,
         subject: `Nota servis ${s.orderNumber} - MotoBase`,
@@ -87,7 +131,9 @@ export const sendReceiptEmail = async (job) => {
                 contentType: "application/pdf",
             },
         ],
-    });
+    };
+    if (env.BREVO_API_KEY) return sendWithBrevo(message);
+    await getTransport().sendMail(message);
 };
 
 // A lease lets a different worker recover a job after a process crash.

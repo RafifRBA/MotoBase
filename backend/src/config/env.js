@@ -47,10 +47,15 @@ const envSchema = z
         SMTP_USER: z.string().optional(),
         SMTP_PASSWORD: z.string().optional(),
         EMAIL_FROM: z.string().optional(),
+        BREVO_API_KEY: z.string().optional(),
     })
     .superRefine((value, ctx) => {
         if (!value.EMAIL_ENABLED) return;
-        for (const field of ["SMTP_HOST", "SMTP_PORT", "EMAIL_FROM"]) {
+        // Dengan BREVO_API_KEY email dikirim lewat HTTPS, jadi setelan SMTP tidak wajib.
+        const required = value.BREVO_API_KEY
+            ? ["EMAIL_FROM"]
+            : ["SMTP_HOST", "SMTP_PORT", "EMAIL_FROM"];
+        for (const field of required) {
             if (!value[field])
                 ctx.addIssue({
                     code: "custom",

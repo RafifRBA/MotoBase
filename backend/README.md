@@ -131,6 +131,11 @@ port 587 memakai `false` (STARTTLS). Untuk Gmail gunakan *App Password*, bukan
 password akun. Layanan yang mewajibkan verifikasi domain pengirim (mis. ZeptoMail)
 tidak bisa memakai alamat `*.vercel.app`; butuh domain milik sendiri.
 
+**Hosting yang memblokir SMTP (mis. Railway paket Free/Trial/Hobby).** Isi
+`BREVO_API_KEY` dengan API key Brevo. Email lalu dikirim lewat HTTPS dan setelan
+`SMTP_*` tidak dipakai (hanya `EMAIL_ENABLED=true` dan `EMAIL_FROM` yang wajib).
+`EMAIL_FROM` harus alamat pengirim yang sudah diverifikasi di Brevo.
+
 Pelanggan tanpa surel tetap bisa diselesaikan: tambahkan surel di data
 pelanggan, lalu gunakan **Kirim nota** di detail servis. Admin juga dapat
 mengirim ulang nota terbaru setelah pembayaran dicatat. Panel di detail servis
