@@ -1,9 +1,8 @@
 import PDFDocument from "pdfkit";
 import { fileURLToPath } from "node:url";
 
-const logo = fileURLToPath(
-    new URL("../../../../brand/logo/png/motobase-lockup-warna.png", import.meta.url),
-);
+// Salinan logo ada di backend/assets agar ikut ter-deploy (folder brand/ ada di luar backend).
+const logo = fileURLToPath(new URL("../../../assets/receipt-logo.png", import.meta.url));
 // Only explicitly selected customer-facing fields enter this snapshot.
 export const receiptSnapshot = (order, customer, vehicle) => ({
     orderNumber: order.orderNumber,
