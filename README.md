@@ -1,4 +1,4 @@
-# MotoBase
+<img width="713" height="241" alt="image" src="https://github.com/user-attachments/assets/4c1541a3-abd4-464d-bba1-8979b0a6c7c8" /># MotoBase
 
 Layanan digitalisasi operasional bengkel motor yang membantu mengelola alur
 servis, pencatatan otomatis stok suku cadang, dan riwayat kendaraan secara
@@ -174,3 +174,12 @@ Frontend meneruskan `/api/v1/*` ke backend di `BACKEND_URL` (default `http://loc
 Laporan Milestone 1 (PDF):
 
 https://drive.google.com/file/d/1kDmTi31KlfHR6rZ9tofoCnA7I2DcHUCO/view?usp=sharing
+
+## Video Demo 
+https://drive.google.com/file/d/1fjm243T6Oht8LvY4VH_tZOzZNHoADU1Q/view?usp=drivesdk
+
+## Power Point 
+https://drive.google.com/file/d/1TZ5Yx_uC6BgBd7O1Mg1ieb-JefoGSDQ5/view?usp=drivesdk
+
+## Link web
+https://motobase.vercel.app/
