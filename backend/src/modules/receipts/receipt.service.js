@@ -128,7 +128,7 @@ export const processReceiptEmail = async (send = sendReceiptEmail, now = new Dat
                 "receiptEmail.nextAttemptAt": null,
             },
         });
-    } catch {
+    } catch (error) {
         // Provider errors can contain credentials/recipient details. Keep only a safe code.
         await ServiceOrder.updateOne(filter, {
             $set: {
@@ -141,7 +141,12 @@ export const processReceiptEmail = async (send = sendReceiptEmail, now = new Dat
             },
         });
         logger.warn(
-            { orderId: order.id, attempts: order.receiptEmail.attempts },
+            {
+                orderId: order.id,
+                attempts: order.receiptEmail.attempts,
+                code: error?.code,
+                responseCode: error?.responseCode,
+            },
             "Pengiriman nota gagal; akan dicoba ulang",
         );
     }
